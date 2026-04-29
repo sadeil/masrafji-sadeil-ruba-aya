@@ -1,0 +1,85 @@
+<svg width="1800" height="1100" viewBox="0 0 1800 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7A60FF"/>
+      <stop offset="0.5" stop-color="#427FFF"/>
+      <stop offset="1" stop-color="#1BB9B7"/>
+    </linearGradient>
+    <linearGradient id="vgB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6F53FF"/>
+      <stop offset="0.56" stop-color="#3971FA"/>
+      <stop offset="1" stop-color="#18AFAE"/>
+    </linearGradient>
+    <linearGradient id="vgC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8A6EFF"/>
+      <stop offset="0.48" stop-color="#518BFF"/>
+      <stop offset="1" stop-color="#36C4C0"/>
+    </linearGradient>
+    <style>
+      .ar {
+        font-family: "Cairo", "Noto Sans Arabic", "Segoe UI", sans-serif;
+        font-weight: 700;
+      }
+      .en {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        font-weight: 500;
+        letter-spacing: 0.7px;
+      }
+      .cap {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.6px;
+      }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1100" fill="#F3F7FF"/>
+  <text x="100" y="100" class="cap" font-size="40" fill="#1E2E52">Masrafji Logo Directions</text>
+  <text x="100" y="142" class="en" font-size="24" fill="#6F7FA5">Rounded fintech identity, Arabic-first, launch-ready options</text>
+
+  <rect x="90" y="190" width="520" height="820" rx="34" fill="#FFFFFF"/>
+  <rect x="640" y="190" width="520" height="820" rx="34" fill="#FFFFFF"/>
+  <rect x="1190" y="190" width="520" height="820" rx="34" fill="#FFFFFF"/>
+
+  <g transform="translate(170 260)">
+    <rect x="0" y="0" width="360" height="360" rx="96" fill="url(#vgA)"/>
+    <rect x="54" y="74" width="252" height="206" rx="48" fill="white" fill-opacity="0.16"/>
+    <path d="M74 236L130 184L176 208L250 140" stroke="white" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="130" cy="184" r="11" fill="white"/>
+    <circle cx="176" cy="208" r="11" fill="white"/>
+    <circle cx="250" cy="140" r="11" fill="white"/>
+    <rect x="90" y="96" width="184" height="20" rx="10" fill="white" fill-opacity="0.84"/>
+    <text x="360" y="470" text-anchor="end" direction="rtl" unicode-bidi="plaintext" class="ar" font-size="88" fill="#1A2B4D">E51A,J</text>
+    <text x="360" y="522" class="en" font-size="30" fill="#64779F">Masrafji</text>
+    <text x="0" y="600" class="cap" font-size="28" fill="#25375D">Direction A</text>
+    <text x="0" y="636" class="en" font-size="22" fill="#7A8BAF">Wallet + smart growth line</text>
+  </g>
+
+  <g transform="translate(720 260)">
+    <rect x="0" y="0" width="360" height="360" rx="96" fill="url(#vgB)"/>
+    <path d="M90 245C124 201 148 176 180 176C212 176 236 201 270 245" stroke="white" stroke-width="22" stroke-linecap="round"/>
+    <path d="M92 128H178C236 128 274 166 274 224V252" stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="182" cy="128" r="12" fill="white"/>
+    <circle cx="274" cy="252" r="12" fill="white"/>
+    <rect x="98" y="86" width="164" height="20" rx="10" fill="white" fill-opacity="0.8"/>
+    <text x="360" y="470" text-anchor="end" direction="rtl" unicode-bidi="plaintext" class="ar" font-size="88" fill="#1A2B4D">E51A,J</text>
+    <text x="360" y="522" class="en" font-size="30" fill="#64779F">Masrafji</text>
+    <text x="0" y="600" class="cap" font-size="28" fill="#25375D">Direction B</text>
+    <text x="0" y="636" class="en" font-size="22" fill="#7A8BAF">Flow loop + organized movement</text>
+  </g>
+
+  <g transform="translate(1270 260)">
+    <rect x="0" y="0" width="360" height="360" rx="96" fill="url(#vgC)"/>
+    <rect x="84" y="90" width="192" height="192" rx="52" fill="white" fill-opacity="0.17"/>
+    <path d="M108 224L154 180L192 196L248 144" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="154" cy="180" r="10" fill="white"/>
+    <circle cx="192" cy="196" r="10" fill="white"/>
+    <circle cx="248" cy="144" r="10" fill="white"/>
+    <path d="M108 134H244" stroke="white" stroke-width="16" stroke-linecap="round" opacity="0.85"/>
+    <path d="M124 258H236" stroke="white" stroke-width="10" stroke-linecap="round" opacity="0.58"/>
+    <text x="360" y="470" text-anchor="end" direction="rtl" unicode-bidi="plaintext" class="ar" font-size="88" fill="#1A2B4D">E51A,J</text>
+    <text x="360" y="522" class="en" font-size="30" fill="#64779F">Masrafji</text>
+    <text x="0" y="600" class="cap" font-size="28" fill="#25375D">Direction C</text>
+    <text x="0" y="636" class="en" font-size="22" fill="#7A8BAF">Grid card + analytics emphasis</text>
+  </g>
+</svg>

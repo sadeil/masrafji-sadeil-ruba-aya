@@ -1,0 +1,31 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconGradV2" x1="210" y1="178" x2="804" y2="816" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C63FF"/>
+      <stop offset="0.52" stop-color="#3D81FF"/>
+      <stop offset="1" stop-color="#16BBB7"/>
+    </linearGradient>
+    <radialGradient id="iconGlowV2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 512) rotate(90) scale(426)">
+      <stop stop-color="#618CFF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#618CFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="iconDropV2" x="92" y="84" width="840" height="840" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="34" stdDeviation="28" flood-color="#08122D" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="228" fill="#0B1222"/>
+  <circle cx="512" cy="512" r="372" fill="url(#iconGlowV2)"/>
+
+  <g filter="url(#iconDropV2)">
+    <rect x="182" y="172" width="660" height="660" rx="182" fill="url(#iconGradV2)"/>
+    <rect x="286" y="308" width="452" height="346" rx="94" fill="white" fill-opacity="0.17"/>
+    <rect x="350" y="342" width="322" height="42" rx="21" fill="white" fill-opacity="0.9"/>
+    <path d="M324 578L412 502L500 540L644 404" stroke="white" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="412" cy="502" r="22" fill="white"/>
+    <circle cx="500" cy="540" r="22" fill="white"/>
+    <circle cx="644" cy="404" r="22" fill="white"/>
+    <path d="M640 344L686 300L730 344L686 388L640 344Z" fill="white" fill-opacity="0.92"/>
+    <circle cx="734" cy="404" r="14" fill="white" fill-opacity="0.9"/>
+  </g>
+</svg>

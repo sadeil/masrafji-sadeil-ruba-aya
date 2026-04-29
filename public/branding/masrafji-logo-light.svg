@@ -1,0 +1,43 @@
+<svg width="1720" height="540" viewBox="0 0 1720 540" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradL" x1="126" y1="84" x2="348" y2="348" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C63FF"/>
+      <stop offset="0.52" stop-color="#3D81FF"/>
+      <stop offset="1" stop-color="#16BBB7"/>
+    </linearGradient>
+    <radialGradient id="glowL" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(236 236) rotate(90) scale(192)">
+      <stop stop-color="#5F8CFF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#5F8CFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="dropL" x="0" y="0" width="500" height="500" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="16" flood-color="#142755" flood-opacity="0.22"/>
+    </filter>
+    <style>
+      .ar { font-family: "Tajawal", "Noto Sans Arabic", "Segoe UI", sans-serif; font-weight: 700; }
+      .en { font-family: "Inter", "Segoe UI", sans-serif; font-weight: 500; letter-spacing: 0.8px; }
+    </style>
+  </defs>
+
+  <rect width="1720" height="540" fill="#F5F8FF"/>
+
+  <g transform="translate(74 46)">
+    <circle cx="236" cy="236" r="184" fill="url(#glowL)"/>
+    <g filter="url(#dropL)">
+      <rect x="74" y="74" width="324" height="324" rx="92" fill="url(#gradL)"/>
+      <rect x="126" y="146" width="220" height="178" rx="48" fill="white" fill-opacity="0.16"/>
+      <rect x="150" y="178" width="136" height="18" rx="9" fill="white" fill-opacity="0.9"/>
+      <path d="M154 288L198 246L242 268L308 206" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="198" cy="246" r="10" fill="white"/>
+      <circle cx="242" cy="268" r="10" fill="white"/>
+      <circle cx="308" cy="206" r="10" fill="white"/>
+      <path d="M280 154L306 128L332 154L306 180L280 154Z" fill="white" fill-opacity="0.92"/>
+      <circle cx="340" cy="206" r="7" fill="white" fill-opacity="0.9"/>
+    </g>
+  </g>
+
+  <g transform="translate(560 126)">
+    <text x="944" y="188" direction="rtl" unicode-bidi="plaintext" text-anchor="end" class="ar" font-size="174" fill="#142848">&#1605;&#1589;&#1585;&#1601;&#1580;&#1610;</text>
+    <text x="950" y="262" class="en" font-size="48" fill="#6076A0">Masrafji</text>
+    <text x="0" y="322" class="en" font-size="24" fill="#92A4C8">Organized money, intelligent flow</text>
+  </g>
+</svg>
