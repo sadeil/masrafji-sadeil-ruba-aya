@@ -1,0 +1,1058 @@
+================================================================================
+MASRAFJI (مصرفجي) — COMPREHENSIVE PROJECT FEATURE DOCUMENTATION
+"Your Money, Personalised"
+================================================================================
+
+Generated: 2026-04-30
+Project Path: /Users/Ruba/Downloads/salam/masrafji-sadeil-ruba-aya-master/
+
+================================================================================
+1. PROJECT TYPE & STACK
+================================================================================
+
+Project Name : Masrafji (مصرفجي) — "Your Money, Personalised"
+Type         : A premium personal finance web application demo with role-based
+               onboarding, personalized dashboards, and smart notifications.
+
+TECH STACK
+----------
+- Runtime         : React 19 (latest, hooks-based architecture)
+- Build Tool      : Vite 8 with Rolldown
+- Styling         : Tailwind CSS 3 with custom HSL CSS variable design tokens
+- Charting        : Recharts (v3.8.1) for cash flow, donut, and forecast charts
+- Icons           : Lucide React (v1.12.0) — extensive icon library
+- i18n            : Custom React Context-based bilingual system (English/Arabic)
+- State           : React hooks (useState, useContext) — NO Redux/Zustand
+- Build Optim.    : Vite with manual chunk splitting (recharts/lucide/react)
+
+LANGUAGES
+---------
+Fully bilingual:
+- English (LTR) : Default, Inter font family
+- Arabic  (RTL) : Full support with Tajawal font, mirrored layouts,
+                  Arabic-Indic numerals
+- Auto-detection from browser language (falls back to English)
+
+STYLING FRAMEWORK
+-----------------
+- Tailwind CSS 3 with custom color palette (brand blue: #3961fb)
+- Custom box shadows (soft, lift, ring)
+- Custom animations (fade-in, slide-up, pop-in, shimmer, float)
+- Dark mode support via class-based ([data-theme="dark"]) +
+  respects prefers-color-scheme
+- Respects prefers-reduced-motion for accessibility
+
+STORAGE   : localStorage only (no backend API — fully client-side)
+DEPLOY    : Static Vite bundle, runs entirely in the browser
+
+================================================================================
+2. DIRECTORY STRUCTURE
+================================================================================
+
+masrafji-sadeil-ruba-aya-master/
+├── public/                           # Static assets
+├── src/                              # Main source code
+│   ├── main.jsx                      # React entry point
+│   ├── App.jsx                       # Root app (onboarding → dashboard router)
+│   ├── index.css                     # Global styles
+│   │
+│   ├── i18n.jsx                      # Bilingual i18n system (1000+ lines)
+│   │     dict: { en: {...}, ar: {...} }
+│   │     LangProvider, useLang(), useT(), useCategoryLabel(), useMonthLabel()
+│   │
+│   ├── data.js                       # Dummy data + schema definitions
+│   │     CURRENCIES (USD, ILS, JOD, EUR)
+│   │     FINANCIAL_GOALS (8 goal types)
+│   │     INCOME_TYPES (6 income sources)
+│   │     ROLES (7 personas with descriptions + colors)
+│   │     DASHBOARD_DATA (per role: KPIs, cashflow, categories, transactions,
+│   │                                goals, bills, budgets, alerts)
+│   │     ROLE_EXTRAS (per role: children, invoices, badges, sideIncome,
+│   │                            rule503020, clients, forecast, insights)
+│   │
+│   ├── format.js                     # Formatting utilities
+│   │     convert(amountUsd, currency)
+│   │     fmtMoney(amountUsd, currency, {compact, sign})
+│   │     fmtNum(), fmtPct(), fmtDateShort(), fmtRelative()
+│   │     pick(obj, field, lang) — localization helper
+│   │
+│   ├── notifications.js              # Per-role base notification list (400+ lines)
+│   │     N[roleId]: array of bilingual notifications
+│   │                (severity, icon, tab, title, body, action)
+│   │     pickNotification(roleId, lang, data) — selects next w/ ranking
+│   │
+│   ├── notificationFeed.js           # Synthesized feed builder (400+ lines)
+│   │     buildNotificationFeed(roleId, lang, data, currency)
+│   │     Combines: curated base list + data-driven items
+│   │     formatRelativeShort(date, t)
+│   │     groupByDay(items) → Today / Yesterday / Earlier
+│   │
+│   ├── shortcutNotifications.js      # Demo "press 1" notifications (700+ lines)
+│   │     SHORTCUTS[roleId]: role-specific demo notifications
+│   │     pickShortcutNotification(roleId, lang)
+│   │
+│   ├── pages/
+│   │   ├── Onboarding.jsx            # 3-step wizard (+ welcome screen)
+│   │   │     Step 0: Welcome intro
+│   │   │     Step 1: Choose persona  (7 roles)
+│   │   │     Step 2: Choose goal     (8 goals)
+│   │   │     Step 3: Choose income   (6 income types)
+│   │   │     Language + theme toggle in header
+│   │   │
+│   │   └── Dashboard.jsx             # Main dashboard (600+ lines)
+│   │         Tab nav: Overview / Transactions / Budget / Goals / Reports / Settings
+│   │         Smart notification banner (auto-dismiss 10s)
+│   │         Notification Center (bell icon, unread badge)
+│   │         Add Transaction / Income / Bill / Goal sheet
+│   │         Toast notifications (demo "1" key)
+│   │         Role-specific sections rendered below shared components
+│   │
+│   ├── components/
+│   │   ├── UI.jsx                    # Card, Button, Chip, Progress, NotifBell, ...
+│   │   ├── PhoneFrame.jsx            # iPhone-style device frame
+│   │   ├── Brand.jsx                 # Logo + Wordmark components
+│   │   ├── Sidebar.jsx               # Bottom navigation bar (6 tabs)
+│   │   ├── Icons.jsx                 # Icon registry + CategoryIcon
+│   │   ├── Charts.jsx                # Recharts wrappers (400+ lines)
+│   │   ├── RoleSections.jsx          # Role-specific dashboard sections
+│   │   ├── Modals.jsx                # Bottom sheets, modals, toasts
+│   │   ├── Settings.jsx              # Settings tab component
+│   │   ├── SmartNotification.jsx     # Banner notification
+│   │   └── NotificationCenter.jsx    # Notification inbox sheet
+│   │
+│   └── index.css                     # Global Tailwind directives + custom CSS
+│
+├── index.html                        # HTML entry point
+├── package.json                      # Dependencies
+├── vite.config.js                    # Vite + code splitting
+├── tailwind.config.js                # Tailwind customization
+├── postcss.config.js                 # PostCSS (Autoprefixer)
+└── eslint.config.js                  # ESLint rules
+
+NESTED DIRECTORY NOTE: There is a duplicate folder `masrafji-sadeil-ruba-aya/`
+inside the master folder containing the same source code. This appears to be a
+git artifact / accidental nesting. Only the root /src/ folder is active.
+
+================================================================================
+3. ENTRY & ROUTING
+================================================================================
+
+MAIN ENTRY: src/main.jsx
+    ReactDOM.render(
+      <LangProvider>
+        <App />
+      </LangProvider>
+    )
+
+ROOT APP (App.jsx)
+- Wraps the app in LangProvider (i18n context)
+- Wraps in PhoneFrame (device frame container)
+- Conditional routing:
+    Onboarding : 4-step wizard if role/goal/income not set
+    Dashboard  : Main app once all 3 onboarding answers chosen
+- Manages state: theme, roleId, goalId, incomeType, currency,
+                 notificationsOn, monthlyIncome
+- Persists all state to localStorage with "masrafji-" prefix
+- Legacy migration: converts old "masrafhi-" keys to new "masrafji-"
+- Feature flag: ALWAYS_SHOW_ONBOARDING_ON_LOAD (default false)
+
+ROUTES (within Dashboard) — TAB-BASED, NO URL ROUTING
+1. Overview      — KPI cards, cash flow chart, donut, txns, goals, bills, alerts
+2. Transactions  — Ledger w/ search, filter (income/expenses/all), detail
+3. Budget        — Monthly budgets w/ traffic-light status
+4. Goals         — Savings goals w/ progress, deadlines, achievements
+5. Reports       — 6-month cash flow report + insights
+6. Settings      — Persona, language, currency, income, notifications, dark mode
+
+Navigation is via useState('overview') — no react-router.
+
+================================================================================
+4. ALL PAGES / VIEWS IN DETAIL
+================================================================================
+
+----------------------------------------------------------------
+PAGE 1 — ONBOARDING (src/pages/Onboarding.jsx)
+----------------------------------------------------------------
+Purpose: 3-step persona/goal/income wizard + welcome screen.
+
+STEP 0 — Welcome Screen
+- Headline: "Welcome to Masrafji"
+- Tagline : "Your smart money companion"
+- Feature list: Pick lifestyle, set goal, choose income type
+- CTA     : "Begin" button
+- Header  : Language toggle (EN/ع) + theme toggle (light/dark)
+
+STEP 1 — Choose Persona (7 roles)
+- Grid of role cards, each showing:
+   * Icon     (Home, Briefcase, Sparkles, GraduationCap, Wallet, Rocket, Compass)
+   * Name     (Family Parent, Business Owner, School Student, University Student,
+              Employee, Freelancer, General User)
+   * Tagline  (e.g. "Run a household with confidence")
+   * Description (2–3 sentences about coverage)
+   * Examples (3 bullet points of typical use cases)
+   * Gradient accent color (unique per role)
+- Selected card highlighted with checkmark
+- Continue button disabled until one chosen
+
+STEP 2 — Choose Financial Goal (8 goals)
+   Organize expenses · Save money · Pay bills on time ·
+   Manage family income · Manage business/project · Track debts ·
+   Build emergency fund · Track investments
+- Each card: icon + translated label
+
+STEP 3 — Choose Income Type (6 income types)
+   Fixed salary · Variable income · Monthly allowance ·
+   Business income · Multiple income sources · No fixed income
+- Each card: icon + translated label
+
+TOP BAR (all steps)
+- Left:  Masrafji logo + wordmark
+- Right: Language toggle (EN/ع) + theme toggle
+
+STEP INDICATOR (Steps 1–3): 3 dots showing current step.
+
+BOTTOM ACTION BAR (Steps 1–3)
+- Left:   Back (visible on step > 1)
+- Center: "Step X of 3"
+- Right:  Continue (or "Start" on final step)
+
+BEHAVIOR
+- Can only proceed if current step is answered
+- Language/theme can change at any time
+- On load, if partially completed: jumps to first unanswered step
+- On completion: state syncs to localStorage; App.jsx detects and shows Dashboard
+
+----------------------------------------------------------------
+PAGE 2 — DASHBOARD (src/pages/Dashboard.jsx)
+----------------------------------------------------------------
+The main application. Six tabs of content.
+
+┌──────────────── OVERVIEW TAB ────────────────┐
+
+TOP BAR (fixed)
+- Left  : User initials avatar + greeting (Good morning/afternoon/evening)
+- Right : Notifications bell (unread badge), theme toggle, menu
+
+SMART NOTIFICATION BANNER (if notificationsOn)
+- Slides in from top
+- 1 per-role personalized notification (rotates on reload)
+- Icon + severity color (info/success/warning/danger/brand)
+- Title + body
+- Action button (navigates to relevant tab)
+- Close button (manual dismiss)
+- Auto-dismisses after 10 seconds
+- Localized (EN/AR)
+
+KPI CARDS (4 columns, responsive)
+- Total Balance : USD amount, delta %, sub-label (e.g. "across 3 accounts")
+- Income        : USD amount, delta %, sub-label (e.g. "salary + side gig")
+- Expenses      : USD amount, delta %, sub-label
+- Savings       : USD amount, delta %, sub-label
+- All amounts: formatted with selected currency, converted from USD
+- Delta: trending-up/down icon + color
+
+CASH FLOW CHART
+- 6-month area chart (Recharts)
+- X-axis: Month abbreviations (Nov, Dec, Jan, Feb, Mar, Apr)
+- Y-axis: USD amounts
+- 2 series: Income (green) + Expenses (blue)
+- Tooltip on hover with month + both values
+- Localized month names
+
+SPENDING BY CATEGORY DONUT
+- Pie chart with 6 categories (role-specific)
+- Each slice has color + category label
+- Center shows total amount
+- Click slice → filter transaction list to that category
+
+RECENT TRANSACTIONS (last 7 days)
+- 8 transactions (latest first)
+- Row: icon, name, category, amount, date
+- Amount colors: green (income) / red (expense)
+- Date relative: "Today", "Yesterday", "3 days ago"
+- Tap → expand / details
+- Search bar + filter chips (All / Income / Expenses)
+
+BUDGET CATEGORIES (status cards)
+- 5 categories with: icon, name, Spent / Limit, progress bar
+- Progress bar color: green (under), amber (70–100%), red (over)
+- Percentage label or "Over by $20"
+
+UPCOMING BILLS (next 7 days)
+- 3–5 bills: icon, name, amount, due date, status ("upcoming")
+- Tap → mark as paid / add reminder
+
+GOALS PROGRESS
+- 3–4 goals: icon, name, target, saved, deadline, progress
+- "65% · 3 weeks ahead" or "Achieved!"
+
+SMART ALERTS (role-specific)
+- 3 alerts with severity tone + icon
+- Title + body + optional action
+- Severity colors: info/blue, success/green, warning/amber, danger/red
+
+ROLE-SPECIFIC SECTION (below shared components)
+- Family Parent      : Children allowance + month comparison
+- Business Owner     : KPI row + invoices grid
+- School Student     : Achievements grid + parent visibility
+- University Student : Income sources breakdown
+- Employee           : 50/30/20 rule + health score
+- Freelancer         : Income forecast + income by client pie
+- General User       : Smart insights cards
+
+QUICK ACTIONS
+- Floating + button or quick action bar
+- Opens AddSheet for: Expense, Income, Bill, Goal
+- Slightly varies per role
+
+┌──────────────── TRANSACTIONS TAB ────────────────┐
+
+HEADER
+- Title: "Transactions"
+- Search bar: "Search transactions..."
+- Filter chips: All / Income / Expenses
+
+LIST
+- All transactions (50+ in dummy data)
+- Grouped by date or category
+- Row: icon, description (e.g. "Carrefour"), category, amount, date
+- Tap → edit / delete / duplicate
+
+EMPTY STATE
+- Icon + "No transactions found"
+- "Try a different search or filter"
+
+ADD TRANSACTION SHORTCUT
+- Bottom sheet via + button
+- Form: Description, Amount, Category (dropdown), Date, Note
+- Save persists in UI only (mock; not to backend)
+
+┌──────────────── BUDGET TAB ────────────────┐
+
+HEADER
+- Title: "Budget categories"
+- Subtitle: "Tracking against monthly limits"
+
+CATEGORY CARDS
+- 5–10 budget items (role-specific)
+- Each card: icon, name, Spent / Limit (tabular nums), progress bar
+- Color: green (<70%), amber (70–100%), red (over)
+- Percentage or "Over by $120"
+- Optional trend vs previous month (↑15%)
+
+ADD BUDGET BUTTON: opens form (select category, monthly limit)
+
+MONTHLY BUDGET SUMMARY: total spent vs total budget — "Spent: $1,200 / $1,500 (80%)"
+
+┌──────────────── GOALS TAB ────────────────┐
+
+HEADER
+- Title: "Your goals"
+- Subtitle: "Track progress toward what matters most"
+
+GOAL CARDS
+- 3–5 per role
+- Icon + name + target + saved + percentage + deadline + progress bar
+- Bar color: green (progressing), amber (slow), red (behind)
+- Tap to expand → detailed breakdown, add funds, edit deadline
+
+ACHIEVEMENTS / BADGES (student roles)
+- Streak (5-day saving streak)         — earned/locked
+- First $100 saved                     — earned/locked
+- No-spend day                         — earned/locked
+- Half-way to phone                    — earned/locked
+- Each: name + unlock condition
+
+ADD GOAL BUTTON: opens sheet (name, target amount, deadline)
+
+┌──────────────── REPORTS TAB ────────────────┐
+
+HEADER
+- Title: "6-month report"
+- Subtitle: "Income, expenses and savings rate"
+
+CHARTS
+- Cash Flow Chart : same 6-month area
+- Savings Rate    : line chart (% saved each month)
+- Income Trend    : bar chart with year-over-year comparison
+
+INSIGHTS (role-specific) — 3 cards each, e.g.:
+- "↘ Eating out -28% · You spent $80 less than March — keep going."
+- "⚡ Energy bill spiked · Up 22% this month. Worth checking your meter."
+- "★ Best saving week · Last week was your most disciplined of the year."
+
+ADVANCED REPORTS (role-specific)
+- Family     : Month-over-month comparison (Groceries, Utilities, Children, Dining)
+- Business   : Revenue breakdown by invoice status (paid, pending, overdue)
+- Freelancer : Income forecast with confidence bands
+- Employee   : 50/30/20 allocation breakdown
+
+┌──────────────── SETTINGS TAB ────────────────┐
+
+ACCOUNT SECTION
+- Change user type (persona) → opens persona picker modal
+
+PREFERENCES SECTION
+- Language       : EN / ع (segmented toggle)
+- Currency       : USD / ILS / JOD / EUR (instant re-conversion)
+- Monthly Income : numeric input
+- Dark Mode      : Light / Dark / System
+- Notifications  : ON / OFF
+
+DATA SECTION
+- Backup : Coming soon (placeholder)
+- Reset  : Erase all app data
+   * Modal: "This will erase your saved persona, language, currency and theme..."
+   * "Yes, reset" → clears all localStorage, returns to onboarding
+
+ABOUT SECTION
+- Logo + wordmark + Version: "1.0"
+
+================================================================================
+5. ALL COMPONENTS IN DETAIL
+================================================================================
+
+UI PRIMITIVES — src/components/UI.jsx
+--------------------------------------
+Component         | Props                                       | Behavior
+------------------|---------------------------------------------|-----------------------------------
+<Card>            | className, glass                            | Container; glass adds glassmorphic
+<CardHeader>      | title, subtitle, action, className          | Title+subtitle, right action
+<Button>          | variant (primary/ghost/secondary), size     | Full-width by default
+<IconButton>      | icon, label, onClick, active                | Square w/ centered icon
+<Chip>            | tone (default/info/success/warning/danger/  | Small rounded badge
+                  |       brand), className                     |
+<DeltaChip>       | value, suffix, invert                       | Trending up/down with %
+<Progress>        | value, max, tone, className                 | Horizontal bar (tone-colored)
+<NotifBell>       | unreadCount, onClick, label, active         | Bell w/ animated unread badge
+<ThemeToggle>     | theme, onToggle                             | Sun/moon icon toggle
+<StatCard>        | label, value, delta, sub                    | KPI card (amount, % change, sub)
+<EmptyState>      | icon, title, body                           | Centered empty state
+<SearchInput>     | placeholder, value, onChange                | Text input with search icon
+<SegmentedControl>| options, value, onChange                    | Pill toggle 2–4 options
+
+CHARTS — src/components/Charts.jsx
+-----------------------------------
+- <MeasuredChart>   : ResizeObserver wrapper; passes width/height to children
+- <Sparkline>       : Tiny SVG sparkline (no Recharts) for mini trends
+- <CashflowChart>   : Recharts AreaChart, Income+Expenses, custom tooltip
+- <CategoryDonut>   : Recharts PieChart styled as donut; total in center
+- <ForecastChart>   : Recharts AreaChart with confidence band (Freelancer only)
+
+ICONS — src/components/Icons.jsx
+---------------------------------
+- Maps icon name strings → Lucide React icons
+- <CategoryIcon category={name} /> → category-specific colored icon
+- e.g. "Groceries" → shopping-cart icon in green
+
+LAYOUT & NAVIGATION
+-------------------
+- <PhoneFrame>  : iPhone-shaped device frame (desktop) / edge-to-edge (mobile)
+- <BottomNav>   : 6-tab nav bar (Overview, Transactions, Budget, Goals, Reports, Settings)
+- <Logo>        : Masrafji mark (customizable size)
+- <Wordmark>    : "Masrafji" text wordmark (with optional tagline)
+- <Brand>       : Combined logo + wordmark
+
+SMART NOTIFICATION SYSTEM
+-------------------------
+- <SmartNotification>  : Banner sliding in from top; auto-dismisses 10s
+- <NotificationCenter> : Apple-style slide-down sheet, full feed, filter chips,
+                         read/dismiss state, date grouping
+
+FORMS & INPUTS
+--------------
+- <AddSheet> : Bottom sheet for adding expense/income/bill/goal
+- <Toast>    : Floating toast (used for "Demo: Press 1" shortcut)
+
+SETTINGS
+--------
+- <Settings>          : Full settings tab component
+- <SettingsSection>   : Grouped setting rows with title
+- <SettingsRow>       : Single setting (icon, label, sub-label, control)
+
+ROLE-SPECIFIC SECTIONS — src/components/RoleSections.jsx
+--------------------------------------------------------
+FAMILY PARENT
+- Children allowance tracker (cards with spending vs allowance progress)
+- Month-over-month comparison (spending changes vs last month)
+
+BUSINESS OWNER
+- KPI row (Revenue, Profit, Expenses, Growth %)
+- Invoices grid (recent invoices: paid/pending/overdue)
+
+SCHOOL STUDENT
+- Achievements/badges grid (locked/earned)
+- Parent visibility section (parent sees savings %, not spending details)
+
+UNIVERSITY STUDENT
+- Income sources breakdown (Tutoring + Campus job + Freelance)
+
+EMPLOYEE
+- 50/30/20 rule allocation (pie: needs 50%, wants 30%, savings 20%)
+- Financial health score (82/100, breakdown of savingsRate/debtLoad/subBloat)
+
+FREELANCER
+- Income forecast chart (area with lower/upper bounds, 6 months)
+- Income by client (pie: which clients % of revenue YTD)
+
+GENERAL USER
+- Smart insights (3 cards: trends, tips, observations)
+
+================================================================================
+6. STATE MANAGEMENT
+================================================================================
+
+ARCHITECTURE: React hooks only (useState, useContext) — no Redux/Zustand
+
+GLOBAL CONTEXT
+- LangProvider (i18n.jsx)
+   * State    : lang (en/ar), dir (ltr/rtl)
+   * Functions: setLang(lang), t(key, vars)
+   * Hooks    : useLang(), useT(), useCategoryLabel(), useMonthLabel()
+
+LOCAL COMPONENT STATE — App.jsx
+- theme           (light/dark)
+- roleId          (persona selected)
+- currency        (USD/ILS/JOD/EUR)
+- goalId          (financial goal)
+- incomeType      (income type)
+- monthlyIncome   (numeric)
+- notificationsOn (boolean)
+
+DASHBOARD LOCAL STATE
+- tab          (overview/transactions/budget/goals/reports/settings)
+- search       (transaction search string)
+- filter       (all/income/expenses)
+- addType      (null/expense/income/bill/goal — which sheet is open)
+- toast        (current toast notification)
+- notification (smart banner notification)
+- centerOpen   (boolean: NotificationCenter sheet open)
+- feed         (array of notification objects)
+- unreadIds    (Set of notification IDs not yet read)
+
+PERSISTENCE
+- All top-level App state syncs to localStorage on change
+- Notification read/dismissed state persists per-role
+- Keys (all "masrafji-" prefix): role, theme, currency, goal, income,
+  monthly-income, notifications, notif-read-${role}, notif-dismissed-${role}
+
+NO DATA MODELS (everything is dummy data)
+- All transactions, bills, goals are in DASHBOARD_DATA[roleId]
+- No backend API; all data in memory
+- Amounts stored internally in USD; converted at render via convert(usd, currency)
+
+================================================================================
+7. INTERNATIONALIZATION & LOCALIZATION
+================================================================================
+
+SYSTEM: Custom React Context (i18n.jsx) — 1000+ lines of translation dictionary
+
+LANGUAGE SUPPORT
+- English (EN) : LTR, default
+   * Font   : Inter (system fallback chain)
+   * Numerals: Western (0–9)
+   * Direction: ltr
+- Arabic  (AR) : RTL
+   * Font   : Tajawal (UI), Noto Kufi Arabic (fallback)
+   * Numerals: Arabic-Indic (٠–٩) where appropriate
+   * Direction: rtl
+   * Mirrored layout (flexbox auto-reverses)
+   * Mirrored animations
+
+DICTIONARY COVERAGE
+- common.*         : UI labels (Continue, Back, Cancel, Save, ...)
+- onboarding.*     : Wizard text
+- nav.*            : Bottom navigation labels
+- dashboard.*      : Overview tab sections
+- quickActions.*   : Add transaction button labels (role-specific)
+- addSheet.*       : Form labels for new transaction/goal
+- transactions.*   : Transactions tab
+- notifCenter.*    : Notification Center UI
+- notifCategory.*  : Notification category labels
+- settings.*       : Settings tab sections
+- role.*           : Persona names + descriptions (7 roles)
+- goals.*          : Financial goal labels (8 goals)
+- incomeTypes.*    : Income type labels (6 types)
+- categories.*     : Spending category names (30+)
+- sections.*       : Role-specific section headers
+- months.*         : Month abbreviations (Nov–Oct)
+
+IMPLEMENTATION
+   const t = useT();
+   t('common.continue')                  // → "Continue" / "متابعة"
+   t('common.daysAgo', { n: 3 })         // → "3 days ago" / "قبل 3 أيام"
+   useCategoryLabel()('Groceries')       // → "Groceries" / "مشتريات"
+   useMonthLabel()('Nov')                // → "Nov" / "تشرين٢"
+
+BILINGUAL DATA
+- Transaction names : { name: 'Carrefour', nameAr: 'كارفور' }
+- Goal names        : { name: 'New phone', nameAr: 'تلفون جديد' }
+- User names        : { name: 'Layla H.', nameAr: 'ليلى ح.' }
+- Notifications     : { title: { en, ar }, body: { en, ar } }
+
+FORMATTING
+- pick(obj, field, lang)         → obj.fieldAr if AR & exists, else obj.field
+- fmtMoney(usd, currency)        → always LTR numerals (e.g. "$1,420")
+- fmtDateShort(iso, lang)        → locale-aware date
+
+UI MIRRORING
+- Flexbox flex-row-reverse for RTL
+- Icons flip (left-arrow → right-arrow)
+- Padding/margin auto-flip via Tailwind RTL
+- Tab indicators + progress bars mirror correctly
+
+FEATURE FLAG
+- Language can change at any time via toggle
+- On load, auto-detects from navigator.language (fallback: localStorage / EN)
+
+================================================================================
+8. LOCAL STORAGE & PERSISTENCE
+================================================================================
+
+STORAGE METHOD: localStorage only (no IndexedDB, no API)
+
+KEYS STORED
+Key                                | Value                                   | Purpose
+-----------------------------------|-----------------------------------------|--------------------------------
+masrafji-role                      | string (roleId)                         | Selected persona
+masrafji-goal                      | string (goalId)                         | Selected financial goal
+masrafji-income                    | string (incomeType)                     | Selected income type
+masrafji-monthly-income            | number string                           | Monthly income (budgeting)
+masrafji-theme                     | 'light' / 'dark'                        | Color scheme
+masrafji-currency                  | 'USD' / 'ILS' / 'JOD' / 'EUR'           | Display currency
+masrafji-lang                      | 'en' / 'ar'                             | App language
+masrafji-notifications             | 'true' / 'false'                        | Notifications enabled
+masrafji-notif-${role}             | number (string)                         | Notification rotation cursor
+masrafji-notif-read-${role}        | JSON array (notification IDs)           | Read notifications
+masrafji-notif-dismissed-${role}   | JSON array (notification IDs)           | Dismissed notifications
+
+CLEARING DATA
+- Settings → "Reset everything" → confirm → all masrafji-* keys deleted
+- Returns to onboarding screen
+
+MIGRATION
+- Old keys: masrafhi-* (typo in older version)
+- On load: if new key missing but old key exists, migrate + delete old key
+
+NO TRANSACTIONS/GOALS/BUDGET PERSISTENCE
+- All financial data is hardcoded in DASHBOARD_DATA[roleId]
+- Add transaction UI is mock-only
+
+================================================================================
+9. DETAILED USER JOURNEY (FAMILY PARENT, FIRST-TIME USER)
+================================================================================
+
+ 1. Open app → PhoneFrame renders phone device
+ 2. Land on Onboarding → Welcome screen with "Begin" button
+ 3. Click Begin → Step 1 (Choose Persona)
+    - User taps "Family Parent" → card highlights → Continue enables
+ 4. Step 2 (Choose Goal)
+    - User taps "Manage family income" → Continue
+ 5. Step 3 (Choose Income Type)
+    - User taps "Fixed salary" → "Start now"
+    - role/goal/income saved to localStorage
+    - Onboarding complete → Dashboard shows
+ 6. Dashboard Loads
+    - Smart banner slides in: "Electricity bill is coming soon"
+    - Auto-dismisses after 10 s
+    - Overview tab visible:
+       * KPIs: $18,420 balance · $6,400 income · $4,180 expenses · $14,200 savings
+       * 6-month cash flow chart
+       * Spending donut: Groceries, Utilities, Children, Rent, Transport, Other
+       * Recent txns: Carrefour, Salary, School fees, ...
+       * Budgets: Groceries over limit, Children on track, ...
+       * Upcoming: Rent due in 2 days
+       * Goals: Emergency fund 79%, Family vacation 41%
+       * Alerts: Groceries 22% over, Rent due 2 days, Emergency fund on track
+    - Family-specific: Children allowance (Mira 63%, Adam 89%) + month compare
+ 7. User explores tabs:
+    - Transactions: search "Carrefour", filter "Expenses"
+    - Budget      : sees Groceries over limit
+    - Goals       : taps Emergency fund → detail
+    - Reports     : 6-month trend charts
+    - Settings    : currency → ILS (instant convert), dark mode toggle
+ 8. Add transaction demo:
+    - + button → "Add expense" sheet
+    - Description: "Supermarket", Amount: 50, Category: Groceries
+    - "Save expense" → toast "Expense saved" (mock; not persisted)
+ 9. Notification Center:
+    - Bell icon → slide-down sheet (~8 notifications)
+    - Filter: All / Unread → tap notification → marked read, navigates
+    - "Mark all read" → unread cleared
+10. Demo Shortcut (Press 1):
+    - On any tab (not in input) → press "1"
+    - Toast: "Electricity bill due in 2 days · ₪240 due Friday"
+    - Press again → next: "Fuel budget 92% full"
+    - Cycles role-specific list
+11. Change persona:
+    - Settings → "Change user type" → modal → pick "Employee"
+    - Dashboard reloads with Employee data
+       * 50/30/20 rule (Needs 48%, Wants 30%, Savings 22%)
+       * Health score 82/100
+12. Language switch:
+    - "ع" toggle → entire app flips to RTL, fonts switch to Tajawal,
+      layouts mirror, numerals localize
+    - Cashflow months: "تشرين٢", "كانون١", ...
+13. Reset app:
+    - Settings → "Reset app data" → confirm
+    - All localStorage cleared → back to Onboarding welcome
+
+================================================================================
+10. ALL FEATURES (COMPREHENSIVE LIST)
+================================================================================
+
+ONBOARDING FEATURES
+-------------------
+- 3-step wizard (Persona, Goal, Income Type)
+- Welcome screen w/ feature highlights
+- Language toggle (EN/AR) during onboarding
+- Theme toggle (Light/Dark) during onboarding
+- Role descriptions + examples
+- Progress indicator (3 dots)
+- Back navigation
+- State persistence (resume mid-onboarding)
+
+DASHBOARD FEATURES
+------------------
+
+OVERVIEW TAB
+- 4 KPI cards (Balance, Income, Expenses, Savings) with % deltas
+- 6-month cash flow area chart
+- Spending by category donut
+- Recent transactions list (search + filter income/expenses/all)
+- Budget category status (5 categories, traffic light)
+- Upcoming bills (next 7 days)
+- Savings goals with progress bars
+- Smart alerts (3 severity levels)
+- Role-specific custom section
+- Quick actions (+ button)
+
+TRANSACTIONS TAB
+- Full ledger (50+)
+- Search + filter
+- Detail view
+- Empty state
+- Add transaction form
+
+BUDGET TAB
+- Monthly tracking
+- Category cards (spent vs limit, progress)
+- Traffic-light status
+- Add budget form
+- Monthly summary
+
+GOALS TAB
+- Goals list (3–5 per role)
+- Goal detail
+- Achievement/badge grid (student roles)
+- Locked/earned badges
+- Deadline tracking
+- Add goal form
+
+REPORTS TAB
+- 6-month cash flow
+- Savings rate chart
+- Income trend chart
+- Role-specific insights (3 cards)
+- Advanced reports (per role: month-over-month, invoice status,
+  forecast bands, 50/30/20, side income)
+
+SETTINGS TAB
+- Account: Change persona
+- Language : EN / ع
+- Currency : USD / ILS / JOD / EUR (instant re-conversion)
+- Monthly Income : numeric
+- Dark Mode : Light / Dark / System
+- Notifications : ON / OFF
+- Backup : Coming soon
+- Reset : Erase all data (confirm)
+- About : Version + logo
+
+SMART NOTIFICATION SYSTEM
+-------------------------
+
+Opening Banner
+- Per-role personalized
+- Slides in on dashboard load
+- Icon + severity color
+- Title + body + Action button + Close button
+- Auto-dismiss 10 s
+- Localized
+- Rotates through 4 notifications per role
+- Ranked by relevance to live data
+
+Notification Center
+- Bell icon with unread badge
+- Slide-down Apple-style sheet
+- ~8 notifications (curated + data-driven)
+- Filter chips: All / Unread / Bills / Goals / Budget / Tips
+- Date grouping: Today / Yesterday / Earlier this week
+- Per item: icon, severity, title, body, time, mark read/unread, dismiss, action
+- Buttons: Mark all read, Clear all
+- Empty state: "No notifications yet"
+- Persisted per role
+
+Demo Shortcut (Press 1)
+- Press "1" key → demo notification (typing-aware)
+- Each press cycles role-specific list
+- Toast format
+- Per-role notification sets:
+   * Family       : Electricity, fuel, food, salary, Tesla, school fees
+   * Employee     : Electricity, fuel, food, salary, stocks, 50/30/20, auto-save
+   * Student      : Uni fees, internet, transport, spending spike, coffee, laptop
+   * School Stu.  : Netflix, school payment, ent. budget, allowance, streak, phone
+   * Business     : Tesla, Apple, watchlist, market alert, overdue invoice, tax
+   * Freelancer   : Late payment, income target, invoice paid, tax, watchlist
+   * General      : Electricity, food budget, income, Tesla, financial tip, savings
+
+DATA CURRENCIES
+---------------
+- USD, ILS (Israeli Shekel), JOD (Jordanian Dinar), EUR (Euro)
+- Rates: USD=1, ILS=3.7, JOD=0.71, EUR=0.92
+- Stored as USD, converted at render
+- Symbols: $ · ₪ · JD · €
+- Tabular-nums LTR even in RTL contexts
+
+PERSONA-SPECIFIC FEATURES
+-------------------------
+Family Parent     : Children's allowance tracker, MoM comparison, family safety net
+Business Owner    : KPI row, invoices grid (paid/pending/overdue), tax buffer
+School Student    : Achievement badges, parent-visibility section
+University Stu.   : Income sources breakdown, 3-month buffer, dorm fees
+Employee          : 50/30/20 allocation, financial health score (82/100)
+Freelancer        : Income forecast (bounds), client pie, tax buffer, invoices
+General User      : Smart insights cards (trends, tips, observations)
+
+OTHER FEATURES
+--------------
+- Light/Dark mode (class-based or system)
+- Theme toggle anywhere (header + settings)
+- Respects prefers-reduced-motion (animations disabled)
+- Accessibility: ARIA labels, semantic HTML, focus indicators
+- Bilingual EN/AR with full RTL support
+- Responsive (mobile first; desktop = iPhone frame)
+- Animations: fade-in, slide-up, pop-in
+- Glassmorphic cards (optional)
+- Custom HSL CSS variables
+- Recharts integration (3+ chart types)
+- Lucide icon set (30+ icons)
+- Mock add forms (txn/goal/bill)
+- Toast notifications
+- Modal confirmations
+- Search + filter
+- Sort/group
+- Quick actions
+- Settings persistence
+
+================================================================================
+11. STYLING & THEMING
+================================================================================
+
+FRAMEWORK: Tailwind CSS 3 with custom theme extension
+
+COLOR PALETTE
+- Brand   : Blue gradient (#3961fb primary, #2447ec hover, #1d2e7a dark)
+- Semantic:
+   * Success : #10b981 (green)
+   * Warning : #f59e0b (amber)
+   * Danger  : #ef4444 (red)
+   * Info    : #0ea5e9 (sky blue)
+   * Brand 2 : #6366f1 (indigo), #9333ea (purple), #ec4899 (pink)
+- Neutral : Grayscale via CSS variables (auto light/dark)
+
+CSS VARIABLES (root, light + dark)
+   --bg-primary    : #ffffff / #0a0f1f
+   --bg-secondary  : #f5f7fb / #1a1f3a
+   --text-1        : #0f172a / #f5f7fb
+   --text-2        : #475569 / #cbd5e1
+   --text-3        : #94a3b8 / #64748b
+   --border        : #e2e8f0 / #334155
+   --surface-1     : #ffffff / #1a1f3a
+   --surface-2     : #f5f7fb / #252d47
+
+DARK MODE
+- Toggle in header / settings
+- System preference option (prefers-color-scheme)
+- Applies data-theme="dark" to <html>
+- All colors flip via CSS variables — no hardcoded hex in components
+
+CUSTOM COMPONENTS (Tailwind-based)
+- .card, .card-glass
+- .btn, .btn-primary, .btn-ghost, .btn-icon
+- .chip (with severity variants)
+- .progress-track / .progress-fill
+- .bottom-nav
+- .phone-frame
+
+ANIMATIONS
+- fade-in   : 0.35 s ease-out
+- slide-up  : 0.4  s cubic-bezier(0.22, 1, 0.36, 1)
+- pop-in    : 0.25 s cubic-bezier (scale from 0.95)
+- shimmer   : 2.4  s linear infinite (skeleton)
+- float     : 8    s ease-in-out infinite (gentle bounce)
+- All respect prefers-reduced-motion
+
+FONTS
+- English  : Inter (primary sans), Plus Jakarta Sans (display)
+- Arabic   : Tajawal (primary sans), Noto Kufi Arabic (fallback)
+- System   : SF Pro Display, Segoe UI, system-ui
+
+RESPONSIVE
+- Mobile-first
+- @media (min-width: 900px) → iPhone frame
+- < 900 px → full-screen mobile
+
+SHADOWS
+- shadow-soft  : 1px 2px (subtle), 8px 24px (soft drop)
+- shadow-lift  : 6px 12px, 24px 48px (elevated)
+- shadow-ring  : focus ring (inset blue + outer)
+
+ACCESSIBILITY
+- :focus-visible outlines on interactive elements
+- ARIA labels on buttons, tabs, modals
+- Semantic HTML (<button>, <nav>, <main>, ...)
+- Color contrast WCAG AA
+- Reduced motion respected
+- Keyboard navigation (tab/enter/escape)
+
+================================================================================
+12. CHARTS & VISUALIZATIONS
+================================================================================
+
+LIBRARY: Recharts 3.8.1
+
+Chart Types
+-----------
+Chart           | Location               | Data                                | Interaction
+----------------|------------------------|-------------------------------------|-----------------------------
+CashflowChart   | Overview, Reports      | 6 months (Nov–Apr) income/expenses  | Tooltip on hover
+CategoryDonut   | Overview               | Spending by 6 categories            | Click → filter txns
+Sparkline       | (Optional mini-trends) | Simple trend line                   | Display-only
+ForecastChart   | Reports (Freelancer)   | 6 months w/ confidence bands        | Tooltip shows bounds
+
+TOOLTIP STYLING
+- Dark card background, translucent (glassmorphic)
+- Currency-formatted values
+- Localized month/category labels
+
+RESPONSIVE
+- MeasuredChart wrapper uses ResizeObserver
+- Charts adapt width/height to container
+- Avoids Recharts width(-1) warning under StrictMode
+
+================================================================================
+13. AUTHENTICATION & USER ACCOUNTS
+================================================================================
+
+STATUS: NONE — this is a demo, not a real app
+
+NO AUTHENTICATION
+- No login screen
+- No user accounts
+- No passwords / email verification / sessions
+
+PERSONALIZATION VIA ONBOARDING
+- User selects persona, goal, income type
+- Stored in localStorage
+- Each browser/device acts as an independent user
+- Switching persona = changing localStorage['masrafji-role']
+
+IF BACKEND EXISTED (NOT IMPLEMENTED)
+- Sync localStorage to API
+- Account would link role/goal/income
+- Transaction history would be persisted server-side
+
+================================================================================
+14. ERROR HANDLING & EDGE CASES
+================================================================================
+
+LOCALSTORAGE ACCESS
+- All ops wrapped in try/catch
+- If unavailable: defaults to light theme, EN, USD
+- Graceful degradation
+
+MISSING DATA
+- Invalid roleId → uses DASHBOARD_DATA.general
+- Invalid goal/income → first available
+- Invalid currency → USD
+
+NULL / UNDEFINED
+- pick(obj, field, lang) checks obj first
+- fmtMoney(amount, currency) coerces to USD if not found
+- Chart data validated before render
+
+BROWSER COMPATIBILITY
+- ES2020+ (modern JavaScript)
+- ResizeObserver, CSS custom properties → IE not supported
+- Flexbox, Grid widely supported
+
+MOBILE vs DESKTOP
+- Single responsive codebase
+- Touch-friendly (44 px+ tap targets)
+- Tap/scroll only — no swipe gestures
+
+================================================================================
+15. NOTABLE ARCHITECTURE DECISIONS
+================================================================================
+
+ 1. No backend API — fully client-side demo; data hardcoded in data.js
+ 2. Custom i18n (not react-i18next) — lightweight for demo
+ 3. Context for state, not Redux — app is small
+ 4. Recharts over D3/Chart.js — better React integration
+ 5. Tailwind CSS only, no styled-components — lean bundle, CSS vars for dark mode
+ 6. localStorage, not IndexedDB — simpler API; sufficient
+ 7. No build-time i18n extraction — translations are JS objects
+ 8. Role-specific data, not dynamic queries — clear personalization showcase
+ 9. Mock forms (no persistence) — clarifies demo intent
+10. Notification ranking via heuristics — simple ID match
+
+================================================================================
+16. SUMMARY — WHAT A USER CAN ACTUALLY DO
+================================================================================
+
+CAN DO
+------
+ 1. Complete onboarding (1 of 7 personas, 1 of 8 goals, 1 of 6 income types)
+ 2. View personalized dashboard (different KPIs/charts/alerts/sections per role)
+ 3. Explore 6 tabs: Overview, Transactions, Budget, Goals, Reports, Settings
+ 4. Search & filter transactions (by name, by income/expense)
+ 5. View charts: 6-month cash flow, donut, forecasts, health scores
+ 6. Change settings: language (EN/AR), currency (USD/ILS/JOD/EUR),
+    dark mode, notifications
+ 7. Switch persona — dashboard regenerates
+ 8. Reset app — clears data, returns to onboarding
+ 9. View notifications: opening banner (auto-dismiss) + Notification Center
+10. Demo shortcut — press "1" to cycle role-specific demo notifications
+11. Mock add transaction (expense/income/bill/goal — no persistence)
+12. View role-specific data:
+       Family       : children allowance
+       Business     : invoices + KPIs
+       Student      : badges + parent visibility
+       Freelancer   : forecast + client breakdown
+       Employee     : 50/30/20 + health score
+13. Experience RTL — switch to Arabic, app mirrors, fonts change, numerals localize
+
+CANNOT DO (NOT IMPLEMENTED)
+---------------------------
+- Persist transactions/budgets/goals
+- Sync data to cloud
+- Multi-user accounts
+- Export data
+- Detailed analytics
+- Bill payments / money transfers
+- Connect to real bank accounts
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+Masrafji is a sophisticated personal-finance app DEMO built with React 19, Vite,
+Tailwind, and Recharts. It showcases:
+
+    • role-based personalization (7 personas)
+    • bilingual design (EN/AR with full RTL)
+    • smart notifications (banner + center + demo shortcut)
+    • polished mobile-first UI
+
+…all running 100% client-side with localStorage persistence. It is a showcase of
+design + front-end engineering, NOT a production financial app.

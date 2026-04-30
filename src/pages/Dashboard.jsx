@@ -12,6 +12,7 @@ import {
   Info,
   CheckCircle2,
   XCircle,
+  ScanLine,
 } from 'lucide-react';
 import {
   Card,
@@ -30,6 +31,7 @@ import { BottomNav, getNavItem } from '../components/Sidebar.jsx';
 import { CategoryIcon, getIcon } from '../components/Icons.jsx';
 import { RoleSpecificSections } from '../components/RoleSections.jsx';
 import { AddSheet, Toast } from '../components/Modals.jsx';
+import AICoach from '../components/AICoach.jsx';
 import { Logo, Wordmark } from '../components/Brand.jsx';
 import Settings from '../components/Settings.jsx';
 import SmartNotification from '../components/SmartNotification.jsx';
@@ -58,8 +60,14 @@ export default function Dashboard({
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [addType, setAddType] = useState(null);
+  const [autoScanReceipt, setAutoScanReceipt] = useState(false);
   const [toast, setToast] = useState(null);
   const [notification, setNotification] = useState(null);
+
+  function openSmartReceipt() {
+    setAutoScanReceipt(true);
+    setAddType('expense');
+  }
 
   /* ---- Notification Center state -------------------------------------- */
   const [centerOpen, setCenterOpen] = useState(false);
@@ -265,6 +273,7 @@ export default function Dashboard({
               role={role}
               currency={currency}
               onAdd={(typ) => setAddType(typ)}
+              onOpenSmartReceipt={openSmartReceipt}
             />
           )}
           {tab === 'transactions' && (
@@ -282,7 +291,14 @@ export default function Dashboard({
           {tab === 'goals' && (
             <GoalsTab data={data} currency={currency} onAdd={() => setAddType('goal')} />
           )}
-          {tab === 'reports' && <ReportsTab data={data} currency={currency} role={role} />}
+          {tab === 'reports' && (
+            <ReportsTab
+              data={data}
+              currency={currency}
+              role={role}
+              onOpenSmartReceipt={openSmartReceipt}
+            />
+          )}
           {tab === 'settings' && (
             <Settings
               roleId={roleId}
@@ -309,7 +325,11 @@ export default function Dashboard({
       {addType && (
         <AddSheet
           initialType={addType}
-          onClose={() => setAddType(null)}
+          autoScanReceipt={autoScanReceipt}
+          onClose={() => {
+            setAddType(null);
+            setAutoScanReceipt(false);
+          }}
           onSubmit={(payload) => {
             const typeLabel = t(`addSheet.types.${payload.type}`);
             setToast(t('addSheet.saved', { type: typeLabel }));
@@ -430,7 +450,7 @@ function navKeyFromTab(t) {
 /* Overview tab                                                               */
 /* -------------------------------------------------------------------------- */
 
-function OverviewTab({ data, role, currency, onAdd }) {
+function OverviewTab({ data, role, currency, onAdd, onOpenSmartReceipt }) {
   const t = useT();
   const { lang } = useLang();
   const catLabel = useCategoryLabel();
@@ -660,7 +680,11 @@ function OverviewTab({ data, role, currency, onAdd }) {
       </Card>
 
       {/* Role-specific sections (e.g. children, invoices, badges, …) */}
-      <RoleSpecificSections roleId={role.id} currency={currency} />
+      <RoleSpecificSections
+        roleId={role.id}
+        currency={currency}
+        onOpenSmartReceipt={onOpenSmartReceipt}
+      />
     </div>
   );
 }
@@ -939,7 +963,7 @@ function GoalsTab({ data, currency, onAdd }) {
 /* Reports tab                                                                */
 /* -------------------------------------------------------------------------- */
 
-function ReportsTab({ data, currency, role }) {
+function ReportsTab({ data, currency, role, onOpenSmartReceipt }) {
   const t = useT();
   const totalIncome = data.cashflow.reduce((s, m) => s + m.income, 0);
   const totalExpenses = data.cashflow.reduce((s, m) => s + m.expenses, 0);
@@ -948,6 +972,8 @@ function ReportsTab({ data, currency, role }) {
 
   return (
     <div className="space-y-4">
+      <AICoach role={role} transactions={data.transactions || []} />
+
       <section className="grid grid-cols-2 gap-3">
         <StatCard
           label={t('dashboard.sixMonthIncome')}
@@ -989,7 +1015,11 @@ function ReportsTab({ data, currency, role }) {
       </Card>
 
       {/* Role-specific reports */}
-      <RoleSpecificSections roleId={role.id} currency={currency} />
+      <RoleSpecificSections
+        roleId={role.id}
+        currency={currency}
+        onOpenSmartReceipt={onOpenSmartReceipt}
+      />
     </div>
   );
 }
@@ -1011,8 +1041,14 @@ function TransactionRow({ tx, currency }) {
         color={isIncome ? 'var(--success)' : 'var(--text-2)'}
       />
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-1 truncate">
-          {pick(tx, 'name', lang)}
+        <div className="text-sm font-semibold text-1 truncate flex items-center gap-1.5">
+          <span className="truncate">{pick(tx, 'name', lang)}</span>
+          {tx.scanned && (
+            <span className="tx-scanned-badge" title={t('transactions.scanned')}>
+              <ScanLine size={10} strokeWidth={2.6} />
+              <span>{t('transactions.scanned')}</span>
+            </span>
+          )}
         </div>
         <div className="text-[11px] text-3 truncate">
           {catLabel(tx.category)} · {fmtRelative(tx.date, t)}

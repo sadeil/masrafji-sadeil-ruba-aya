@@ -12,12 +12,28 @@ import {
   Clock,
   AlertTriangle,
   HeartHandshake,
+  Gift,
+  GraduationCap,
+  Briefcase,
+  Monitor,
+  Wifi,
+  Home,
+  Shield,
+  Sparkles,
+  ScanLine,
 } from 'lucide-react';
 import { Card, CardHeader, Chip, Progress } from './UI.jsx';
-import { ForecastChart } from './Charts.jsx';
-import { ROLE_EXTRAS } from '../data.js';
+import { CategoryDonut, ForecastChart } from './Charts.jsx';
+import { DASHBOARD_DATA, ROLE_EXTRAS } from '../data.js';
 import { fmtMoney, fmtPct, pick } from '../format.js';
-import { useLang, useT, useCategoryLabel } from '../i18n.jsx';
+import { useLang, useT } from '../i18n.jsx';
+
+const UNI_SOURCE_ICONS = {
+  srcAllowance: Gift,
+  srcTutoring: GraduationCap,
+  srcCampus: Briefcase,
+  srcFreelance: Monitor,
+};
 
 /* -------------------------------------------------------------------------- */
 /* Family Parent                                                              */
@@ -306,35 +322,182 @@ function SchoolSections() {
 /* University student                                                         */
 /* -------------------------------------------------------------------------- */
 
-function UniSections({ currency }) {
+function UniSections({ currency, onOpenSmartReceipt }) {
   const t = useT();
+  const { lang } = useLang();
   const { sideIncome } = ROLE_EXTRAS['university-student'];
+  const data = DASHBOARD_DATA['university-student'];
   const total = sideIncome.reduce((s, r) => s + r.amount, 0);
+
+  const donutData = sideIncome.map((row) => ({
+    name: t(`sections.uni.${row.sourceKey}`),
+    value: row.amount,
+    color: row.color,
+  }));
+
+  const laptopGoal = data.goals.find((g) => g.id === 'g1') || data.goals[0];
+  const bufferGoal = data.goals.find((g) => g.id === 'g2') || data.goals[1];
+  const dormBill = data.bills.find((b) => b.id === 'b1');
+  const internetBill = data.bills.find((b) => b.id === 'b2');
+  const groceriesBudget = data.budgets.find((b) => b.category === 'Groceries');
+  const groceriesLeft = groceriesBudget ? groceriesBudget.limit - groceriesBudget.spent : 0;
+
   return (
-    <Card className="p-4">
-      <CardHeader
-        title={t('sections.uni.sources')}
-        subtitle={t('sections.uni.sourcesSub')}
-      />
-      <div className="space-y-3 mt-3">
-        {sideIncome.map((row) => {
-          const pct = (row.amount / total) * 100;
-          return (
-            <div key={row.source}>
-              <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="text-1 font-medium">
-                  {t(`sections.uni.${row.sourceKey}`)}
-                </span>
-                <span className="text-2 tabular-nums ltr-numbers">
-                  {fmtMoney(row.amount, currency)}
-                </span>
-              </div>
-              <Progress value={pct} />
-            </div>
-          );
-        })}
+    <>
+      {/* ── Income Sources (pie chart + legend) ──────────────────────────── */}
+      <Card className="p-4">
+        <CardHeader
+          title={t('sections.uni.sources')}
+          subtitle={t('sections.uni.sourcesSub')}
+          action={<Chip tone="brand">{fmtMoney(total, currency)}</Chip>}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 items-center">
+          <div className="min-w-0">
+            <CategoryDonut
+              data={donutData}
+              currency={currency}
+              total={total}
+              label={t('sections.uni.totalLabel')}
+            />
+          </div>
+          <ul className="space-y-2 min-w-0">
+            {sideIncome.map((row) => {
+              const Icon = UNI_SOURCE_ICONS[row.sourceKey] || Wallet;
+              const pct = (row.amount / total) * 100;
+              return (
+                <li
+                  key={row.source}
+                  className="flex items-center gap-3 p-2.5 rounded-xl border"
+                  style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+                >
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                    style={{ background: row.color }}
+                  >
+                    <Icon size={15} strokeWidth={2.2} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12.5px] font-semibold text-1 truncate">
+                      {t(`sections.uni.${row.sourceKey}`)}
+                    </div>
+                    <div className="text-[10.5px] text-3">{fmtPct(pct, 0)}</div>
+                  </div>
+                  <div className="text-[12.5px] font-bold tabular-nums text-1 ltr-numbers">
+                    {fmtMoney(row.amount, currency)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Card>
+
+      {/* ── Student snapshot — laptop, buffer, dorm fee, internet ───────── */}
+      <Card className="p-4">
+        <CardHeader
+          title={t('sections.uni.snapshot')}
+          subtitle={t('sections.uni.snapshotSub')}
+        />
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <UniSnapshotGoal
+            icon={Monitor}
+            tone="#7c3aed"
+            label={t('sections.uni.laptopFund')}
+            value={fmtMoney(laptopGoal.saved, currency)}
+            sub={`${fmtMoney(laptopGoal.target, currency)} · ${pick(laptopGoal, 'deadline', lang)}`}
+            pct={(laptopGoal.saved / laptopGoal.target) * 100}
+          />
+          <UniSnapshotGoal
+            icon={Shield}
+            tone="#10b981"
+            label={t('sections.uni.bufferFund')}
+            value={fmtMoney(bufferGoal.saved, currency)}
+            sub={`${fmtMoney(bufferGoal.target, currency)} · ${pick(bufferGoal, 'deadline', lang)}`}
+            pct={(bufferGoal.saved / bufferGoal.target) * 100}
+          />
+          <UniSnapshotBill
+            icon={Home}
+            tone="#6366f1"
+            label={t('sections.uni.dormFee')}
+            value={fmtMoney(dormBill?.amount || 0, currency)}
+            sub={t('sections.uni.dueIn', { n: 4 })}
+          />
+          <UniSnapshotBill
+            icon={Wifi}
+            tone="#0ea5e9"
+            label={t('sections.uni.internet')}
+            value={fmtMoney(internetBill?.amount || 0, currency)}
+            sub={t('sections.uni.dueIn', { n: 6 })}
+          />
+        </div>
+      </Card>
+
+      {/* ── Smart Receipt CTA ────────────────────────────────────────────── */}
+      <button
+        type="button"
+        onClick={onOpenSmartReceipt}
+        className="uni-receipt-cta w-full text-start"
+        aria-label={t('sections.uni.receiptCtaTitle')}
+      >
+        <span className="uni-receipt-cta-icon">
+          <ScanLine size={20} strokeWidth={2.2} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold">
+            {t('sections.uni.receiptCtaTitle')}
+          </span>
+          <span className="block text-[11.5px] opacity-80 mt-0.5 leading-tight">
+            {t('sections.uni.receiptCtaBody', { n: Math.max(0, Math.round(groceriesLeft)) })}
+          </span>
+        </span>
+        <Sparkles size={16} strokeWidth={2.2} className="opacity-80 flex-shrink-0" />
+      </button>
+    </>
+  );
+}
+
+function UniSnapshotGoal({ icon: Icon, tone, label, value, sub, pct }) {
+  return (
+    <div
+      className="p-3 rounded-2xl border"
+      style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+          style={{ background: tone }}
+        >
+          <Icon size={14} strokeWidth={2.2} />
+        </span>
+        <span className="text-[11px] font-semibold text-3 uppercase tracking-wide">{label}</span>
       </div>
-    </Card>
+      <div className="font-display text-sm font-bold tabular-nums text-1 ltr-numbers">{value}</div>
+      <div className="text-[10.5px] text-3 mt-0.5 truncate">{sub}</div>
+      <div className="mt-2">
+        <Progress value={Math.max(0, Math.min(100, pct))} tone="brand" />
+      </div>
+    </div>
+  );
+}
+
+function UniSnapshotBill({ icon: Icon, tone, label, value, sub }) {
+  return (
+    <div
+      className="p-3 rounded-2xl border"
+      style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+          style={{ background: tone }}
+        >
+          <Icon size={14} strokeWidth={2.2} />
+        </span>
+        <span className="text-[11px] font-semibold text-3 uppercase tracking-wide">{label}</span>
+      </div>
+      <div className="font-display text-sm font-bold tabular-nums text-1 ltr-numbers">{value}</div>
+      <div className="text-[10.5px] text-3 mt-0.5">{sub}</div>
+    </div>
   );
 }
 
@@ -562,7 +725,7 @@ function GeneralSections() {
 /* Router                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export function RoleSpecificSections({ roleId, currency }) {
+export function RoleSpecificSections({ roleId, currency, onOpenSmartReceipt }) {
   switch (roleId) {
     case 'family-parent':
       return <FamilySections currency={currency} />;
@@ -571,7 +734,7 @@ export function RoleSpecificSections({ roleId, currency }) {
     case 'school-student':
       return <SchoolSections />;
     case 'university-student':
-      return <UniSections currency={currency} />;
+      return <UniSections currency={currency} onOpenSmartReceipt={onOpenSmartReceipt} />;
     case 'employee':
       return <EmployeeSections currency={currency} />;
     case 'freelancer':

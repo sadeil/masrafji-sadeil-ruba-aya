@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Claude Code local session data
+.claude/
+
+# Duplicate nested folder shipped in the original zip (kept locally as legacy)
+masrafji-sadeil-ruba-aya/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
