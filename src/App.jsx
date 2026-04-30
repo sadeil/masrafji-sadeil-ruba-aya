@@ -24,10 +24,12 @@ const LEGACY_STORAGE = {
   notifications: 'masrafhi-notifications',
 };
 
-// Flip this to false if you ever want the app to remember the persona
-// across page loads. While true, every fresh load starts at the
-// onboarding wizard — perfect for demos / presentations.
-const ALWAYS_SHOW_ONBOARDING_ON_LOAD = true;
+// When false (default), onboarding shows only the first time the app
+// is opened — once the user completes the wizard their persona / goal
+// / income are saved in localStorage and reloads jump straight to the
+// dashboard. Flip to true to force the wizard on every fresh load
+// (useful for demos / presentations).
+const ALWAYS_SHOW_ONBOARDING_ON_LOAD = false;
 
 const ONBOARDING_KEYS = [
   STORAGE.role,
