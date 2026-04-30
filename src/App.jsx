@@ -24,7 +24,18 @@ const LEGACY_STORAGE = {
   notifications: 'masrafhi-notifications',
 };
 
-/* One-time migration of old `masrafhi-*` localStorage keys → `masrafji-*`. */
+// Flip this to false if you ever want the app to remember the persona
+// across page loads. While true, every fresh load starts at the
+// onboarding wizard — perfect for demos / presentations.
+const ALWAYS_SHOW_ONBOARDING_ON_LOAD = true;
+
+const ONBOARDING_KEYS = [
+  STORAGE.role,
+  STORAGE.goal,
+  STORAGE.income,
+  STORAGE.monthlyIncome,
+];
+
 if (typeof window !== 'undefined') {
   try {
     for (const k of Object.keys(STORAGE)) {
@@ -40,6 +51,16 @@ if (typeof window !== 'undefined') {
     }
   } catch {
     /* ignore */
+  }
+
+  if (ALWAYS_SHOW_ONBOARDING_ON_LOAD) {
+    try {
+      for (const key of ONBOARDING_KEYS) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -80,11 +101,18 @@ function getInitialCurrency() {
 
 export default function App() {
   const [theme, setTheme] = useState(getInitialTheme);
-  const [roleId, setRoleId] = useState(() => readLS(STORAGE.role));
+  const [roleId, setRoleId] = useState(() =>
+    ALWAYS_SHOW_ONBOARDING_ON_LOAD ? null : readLS(STORAGE.role),
+  );
   const [currency, setCurrency] = useState(getInitialCurrency);
-  const [goalId, setGoalId] = useState(() => readLS(STORAGE.goal));
-  const [incomeType, setIncomeType] = useState(() => readLS(STORAGE.income));
+  const [goalId, setGoalId] = useState(() =>
+    ALWAYS_SHOW_ONBOARDING_ON_LOAD ? null : readLS(STORAGE.goal),
+  );
+  const [incomeType, setIncomeType] = useState(() =>
+    ALWAYS_SHOW_ONBOARDING_ON_LOAD ? null : readLS(STORAGE.income),
+  );
   const [monthlyIncome, setMonthlyIncome] = useState(() => {
+    if (ALWAYS_SHOW_ONBOARDING_ON_LOAD) return null;
     const v = readLS(STORAGE.monthlyIncome);
     return v ? Number(v) : null;
   });
