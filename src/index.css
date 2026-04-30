@@ -1222,6 +1222,193 @@ html[dir='rtl'] .onboarding-title {
   margin: 0;
 }
 
+/* ---------------------------------------------------------------------------
+   Welcome screen (Step 0) — premium intro shown before the wizard starts
+   --------------------------------------------------------------------------- */
+
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+  padding: 8px 6px 20px;
+  animation: welcome-screen-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes welcome-screen-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-screen-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.welcome-screen-glow {
+  position: absolute;
+  inset: -28px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(99, 102, 241, 0.32) 0%, rgba(56, 189, 248, 0.10) 45%, transparent 70%);
+  filter: blur(18px);
+  z-index: -1;
+  animation: welcome-glow-pulse 3.6s ease-in-out infinite;
+}
+
+@keyframes welcome-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+
+.welcome-screen-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.welcome-screen-tagline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--brand-600);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+html[dir='rtl'] .welcome-screen-tagline {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 12px;
+  font-family: 'Tajawal', 'Noto Kufi Arabic', system-ui, sans-serif;
+}
+
+.welcome-screen-title {
+  font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--text-1);
+  margin: 0;
+}
+
+html[dir='rtl'] .welcome-screen-title {
+  font-family: 'Tajawal', 'Noto Kufi Arabic', system-ui, sans-serif;
+  letter-spacing: 0;
+  line-height: 1.3;
+  font-size: 26px;
+}
+
+.welcome-screen-intro {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+  margin: 0;
+}
+
+.welcome-screen-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  list-style: none;
+  margin: 0;
+}
+
+.welcome-screen-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: start;
+}
+
+.welcome-screen-feature-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px -4px rgba(57, 97, 251, 0.45);
+}
+
+.welcome-screen-feature-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.4;
+}
+
+html[dir='rtl'] .welcome-screen-feature-text {
+  font-family: 'Tajawal', 'Noto Kufi Arabic', system-ui, sans-serif;
+}
+
+.welcome-screen-cta {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.welcome-screen-button {
+  width: 100%;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 16px;
+  box-shadow:
+    0 10px 22px -8px rgba(57, 97, 251, 0.55),
+    0 4px 12px -4px rgba(15, 23, 42, 0.18);
+}
+
+.welcome-screen-meta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[dir='rtl'] .welcome-screen-meta {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 12px;
+  font-family: 'Tajawal', 'Noto Kufi Arabic', system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-screen,
+  .welcome-screen-glow {
+    animation: none;
+  }
+}
+
 /* Compact role grid (one column on phone width) */
 .role-grid {
   display: grid;

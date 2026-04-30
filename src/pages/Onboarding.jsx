@@ -17,6 +17,13 @@ import { Logo, Wordmark } from '../components/Brand.jsx';
 import { useLang } from '../i18n.jsx';
 import { getIcon } from '../components/Icons.jsx';
 
+// Step layout:
+//   0 → Welcome screen with a single "Begin" CTA
+//   1 → Choose persona
+//   2 → Choose financial goal
+//   3 → Choose income type
+const TOTAL_STEPS = 3;
+
 const ROLE_ICON_MAP = {
   home: Home,
   briefcase: Briefcase,
@@ -40,14 +47,22 @@ export default function Onboarding({
   onSelectIncome,
 }) {
   const { t, lang, setLang } = useLang();
-  const [step, setStep] = useState(roleId ? (goalId ? 3 : 2) : 1);
+  // Start at the welcome screen (step 0). If the user partially completed
+  // the wizard before, jump straight to the first unanswered question.
+  const [step, setStep] = useState(() => {
+    if (roleId && !goalId) return 2;
+    if (roleId && goalId && !incomeType) return 3;
+    return 0;
+  });
 
   const [pendingRole, setPendingRole] = useState(roleId || null);
   const [pendingGoal, setPendingGoal] = useState(goalId || null);
   const [pendingIncome, setPendingIncome] = useState(incomeType || null);
 
   const goNext = () => {
-    if (step === 1) {
+    if (step === 0) {
+      setStep(1);
+    } else if (step === 1) {
       if (!pendingRole) return;
       onSelectRole(pendingRole);
       setStep(2);
@@ -67,6 +82,7 @@ export default function Onboarding({
   };
 
   const isRTL = lang === 'ar';
+  const isWelcome = step === 0;
 
   return (
     <div className="onboarding-shell">
@@ -82,17 +98,22 @@ export default function Onboarding({
         </div>
       </div>
 
-      {/* Step indicator */}
-      <div className="onboarding-stepper">
-        {[1, 2, 3].map((n) => (
-          <div
-            key={n}
-            className={`step-dot ${n === step ? 'is-active' : n < step ? 'is-done' : ''}`}
-          />
-        ))}
-      </div>
+      {/* Step indicator — hidden on the welcome screen */}
+      {!isWelcome && (
+        <div className="onboarding-stepper">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className={`step-dot ${n === step ? 'is-active' : n < step ? 'is-done' : ''}`}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="onboarding-content">
+        {step === 0 && (
+          <Step0Welcome t={t} lang={lang} isRTL={isRTL} onBegin={goNext} />
+        )}
         {step === 1 && (
           <Step1Roles
             t={t}
@@ -119,33 +140,35 @@ export default function Onboarding({
         )}
       </div>
 
-      {/* Bottom action bar */}
-      <div className="onboarding-actions">
-        {step > 1 ? (
-          <button type="button" className="btn btn-ghost" onClick={goBack}>
-            {isRTL ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
-            <span>{t('common.back')}</span>
-          </button>
-        ) : (
-          <div />
-        )}
+      {/* Bottom action bar — hidden on the welcome screen */}
+      {!isWelcome && (
+        <div className="onboarding-actions">
+          {step > 1 ? (
+            <button type="button" className="btn btn-ghost" onClick={goBack}>
+              {isRTL ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+              <span>{t('common.back')}</span>
+            </button>
+          ) : (
+            <div />
+          )}
 
-        <div className="text-xs text-3 font-medium tabular-nums">
-          {t('onboarding.step')} {step} {t('onboarding.of')} 3
+          <div className="text-xs text-3 font-medium tabular-nums">
+            {t('onboarding.step')} {step} {t('onboarding.of')} {TOTAL_STEPS}
+          </div>
+
+          <Button
+            onClick={goNext}
+            disabled={
+              (step === 1 && !pendingRole) ||
+              (step === 2 && !pendingGoal) ||
+              (step === 3 && !pendingIncome)
+            }
+          >
+            <span>{step === 3 ? t('onboarding.start') : t('common.continue')}</span>
+            {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+          </Button>
         </div>
-
-        <Button
-          onClick={goNext}
-          disabled={
-            (step === 1 && !pendingRole) ||
-            (step === 2 && !pendingGoal) ||
-            (step === 3 && !pendingIncome)
-          }
-        >
-          <span>{step === 3 ? t('onboarding.start') : t('common.continue')}</span>
-          {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
-        </Button>
-      </div>
+      )}
     </div>
   );
 }
@@ -173,6 +196,52 @@ function LanguageToggle({ lang, onChange }) {
       >
         ع
       </button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Step 0 — Welcome screen with the "Begin" CTA                               */
+/* -------------------------------------------------------------------------- */
+
+function Step0Welcome({ t, isRTL, onBegin }) {
+  const features = [
+    t('onboarding.welcomeFeature1'),
+    t('onboarding.welcomeFeature2'),
+    t('onboarding.welcomeFeature3'),
+  ];
+  return (
+    <div className="welcome-screen">
+      <div className="welcome-screen-art" aria-hidden="true">
+        <Logo size={80} />
+        <span className="welcome-screen-glow" />
+      </div>
+
+      <div className="welcome-screen-text">
+        <div className="welcome-screen-tagline">
+          <Sparkles size={12} strokeWidth={2.5} />
+          <span>{t('onboarding.welcomeTagline')}</span>
+        </div>
+        <h1 className="welcome-screen-title">{t('onboarding.welcomeTitle')}</h1>
+        <p className="welcome-screen-intro">{t('onboarding.welcomeIntro')}</p>
+      </div>
+
+      <ol className="welcome-screen-features">
+        {features.map((label, i) => (
+          <li key={label} className="welcome-screen-feature">
+            <span className="welcome-screen-feature-num">{i + 1}</span>
+            <span className="welcome-screen-feature-text">{label}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="welcome-screen-cta">
+        <Button onClick={onBegin} className="welcome-screen-button">
+          <span>{t('onboarding.welcomeBegin')}</span>
+          {isRTL ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+        </Button>
+        <div className="welcome-screen-meta">{t('onboarding.welcomeMeta')}</div>
+      </div>
     </div>
   );
 }
