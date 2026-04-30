@@ -3058,18 +3058,18 @@ html[dir='rtl'] .toggle.is-on .toggle-thumb {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(60% 80% at 10% 0%, rgba(99, 102, 241, 0.18) 0%, transparent 60%),
-      radial-gradient(50% 60% at 100% 10%, rgba(56, 189, 248, 0.16) 0%, transparent 55%),
-      radial-gradient(45% 65% at 60% 100%, rgba(244, 114, 182, 0.12) 0%, transparent 60%),
-      var(--bg);
+      radial-gradient(60% 80% at 10% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 60%),
+      radial-gradient(50% 60% at 100% 10%, rgba(56, 189, 248, 0.09) 0%, transparent 55%),
+      radial-gradient(45% 65% at 60% 100%, rgba(244, 114, 182, 0.07) 0%, transparent 60%),
+      #ffffff;
   }
 
   [data-theme='dark'] .phone-stage {
     background:
-      radial-gradient(60% 80% at 10% 0%, rgba(76, 81, 191, 0.34) 0%, transparent 60%),
-      radial-gradient(50% 60% at 100% 10%, rgba(14, 116, 144, 0.28) 0%, transparent 55%),
-      radial-gradient(45% 65% at 60% 100%, rgba(190, 24, 93, 0.22) 0%, transparent 60%),
-      var(--bg);
+      radial-gradient(60% 80% at 10% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 60%),
+      radial-gradient(50% 60% at 100% 10%, rgba(56, 189, 248, 0.09) 0%, transparent 55%),
+      radial-gradient(45% 65% at 60% 100%, rgba(244, 114, 182, 0.07) 0%, transparent 60%),
+      #ffffff;
   }
 
   .phone-stage-bg {
@@ -3208,6 +3208,26 @@ html[dir='rtl'] .toggle.is-on .toggle-thumb {
     color: var(--text-3);
     letter-spacing: 0.04em;
   }
+
+  /* Even when the app theme is dark, the desktop "outside the phone"
+     surface stays white — so the side card is locked to a light look
+     for legibility on that white backdrop. */
+  [data-theme='dark'] .phone-side-card {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(15, 23, 42, 0.08);
+    box-shadow:
+      0 1px 0 rgba(15, 23, 42, 0.04),
+      0 8px 24px -8px rgba(15, 23, 42, 0.10);
+  }
+  [data-theme='dark'] .phone-side-title { color: #0b1228; }
+  [data-theme='dark'] .phone-side-body { color: #43506a; }
+  [data-theme='dark'] .phone-side-feature-list {
+    background: #f8f9fc;
+    border-color: rgba(15, 23, 42, 0.08);
+  }
+  [data-theme='dark'] .phone-side-feature-title { color: #0b1228; }
+  [data-theme='dark'] .phone-side-feature-body { color: #6b7691; }
+  [data-theme='dark'] .phone-side-hint { color: #6b7691; }
 
   /* Phone device proportions are based on iPhone 15 Pro (393×852).
      Height is clamped to the viewport so it never overflows the page. */
