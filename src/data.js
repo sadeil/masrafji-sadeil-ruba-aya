@@ -1,5 +1,5 @@
 /**
- * Pulse — role + dashboard dummy data.
+ * Masrafji — role + dashboard dummy data.
  *
  * All amounts are stored in USD and converted to the user's selected
  * display currency at render time using `convert(amount, currency)`.
