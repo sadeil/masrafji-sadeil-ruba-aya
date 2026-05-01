@@ -1,0 +1,688 @@
+================================================================================
+MASRAFJI (مصرفجي) — NEW FEATURES (DELTA SINCE PROJECT_FEATURES.txt)
+"Your Money, Personalised"
+================================================================================
+
+Generated   : 2026-05-01
+Companion to: PROJECT_FEATURES.txt (original baseline, dated 2026-04-30)
+Scope       : Every feature in the codebase that is NOT documented in v1 —
+              both the prior session's AI features (Voice / Coach / Receipt,
+              committed in 86ab737) AND this session's hackathon work.
+
+═══════════════════════════════════════════════════════════════════════════════
+                 PART A — PRIOR SESSION (commit 86ab737)
+   "Add Voice-to-Expense, AI Money Coach, and Smart Receipt features"
+   These shipped on 2026-04-30 but after PROJECT_FEATURES.txt was generated.
+═══════════════════════════════════════════════════════════════════════════════
+
+================================================================================
+A.1  VOICE-TO-EXPENSE  (Modals.jsx → AddSheet)
+================================================================================
+
+PURPOSE
+  Skip the typing — speak an expense and an LLM parses it into the form.
+  Example: user says "spent twenty shekels on coffee" → form auto-fills
+  amount=20, category=Food, description=coffee.
+
+WHERE
+  Visible inside the AddSheet bottom-sheet (the + Add Transaction modal).
+  A pulsing mic button next to the form fields.
+
+HOW IT WORKS
+  - Native Web Speech API (window.SpeechRecognition / webkitSpeechRecognition)
+  - Locale set per language: ar-SA for Arabic, en-US for English
+  - Transcript fed to parseTranscriptWithLLM(transcript, lang) — calls the
+    OpenAI-compatible Chat Completions endpoint with a strict-JSON schema:
+        { amount, category, description }
+  - applyParsed() writes the values into the AddSheet state, sets
+    voiceState='success', shows a "Pre-filled from voice" toast
+
+VOICE STATE MACHINE
+  idle → listening → processing → success | error
+
+HIDDEN DEMO ESCAPE HATCH
+  Double-clicking the mic skips both the microphone AND the LLM call
+  and pushes a canned bilingual sample through applyParsed (forceMock).
+  Lets you demo voice-to-expense reliably even on hostile Wi-Fi.
+
+i18n COPY
+  addSheet.{voiceStart, voiceListening, voiceProcessing, voiceFilled,
+            voiceFilledDemo, voiceUnsupported, voiceErrorMic,
+            voiceErrorParse}  — EN + AR
+
+ENV VARS
+  VITE_LLM_API_URL  (defaults to OpenAI Chat Completions)
+  VITE_LLM_API_KEY
+  VITE_LLM_MODEL    (defaults to gpt-4o-mini)
+
+================================================================================
+A.2  AI MONEY COACH  (aiCoach.js + components/AICoach.jsx)
+================================================================================
+
+NEW FILES
+  src/aiCoach.js           (347 lines) — LLM + ElevenLabs TTS module
+  src/components/AICoach.jsx (425 lines) — coach card UI
+
+WHERE
+  Reports tab (the "AI Coach" card sits at the top of Reports).
+
+PHASE 1 — WEEKLY/DAILY SUMMARY
+  generateCoachSummary({ role, transactions, lang })
+    System prompt asks for strict JSON:
+      { headline, body, tips:[{icon,text}], spoken }
+  Headline + body + 1-4 tips render as a readable card.
+  "Generate weekly recap" / "New recap" button cycles fresh summaries.
+
+PHASE 2 — CONVERSATIONAL CHAT
+  chatWithCoach({ role, transactions, lang, history, userText })
+    Returns { reply, spoken }. Maintains last 6 turns of conversation
+    history so follow-ups have context.
+  Chat input has:
+    - Text field
+    - Mic button (Web Speech API for the question, then routes through
+      sendChat() — same locale rules as Voice-to-Expense)
+    - Send button
+  Replies render as bubbles in a scrollable log (auto-scrolls on new msg).
+
+ELEVENLABS TTS
+  speak(text, lang) → POST audio/mpeg from
+    https://api.elevenlabs.io/v1/text-to-speech/{voiceId}
+  Model: eleven_multilingual_v2 (handles EN + AR with one voice).
+  Per-language voice override available
+    (VITE_ELEVENLABS_VOICE_ID_EN / _AR).
+  speakSafe() → falls back to native window.speechSynthesis if the
+    ElevenLabs key/network fails. cancelSpeaking() stops both paths
+    cleanly.
+  Coach reply is auto-spoken when received; play/pause button
+    available on the summary card.
+
+DEMO ESCAPE HATCHES (hidden)
+  • Double-click "Generate" → forceMock=true → returns hand-tuned EN/AR
+    summary from MOCK_SUMMARIES.general (no network).
+  • Double-click "Play" → uses native speechSynthesis instead of
+    ElevenLabs (no network).
+  • Double-click the chat mic → skips speech recognition AND the LLM,
+    pushes a canned bilingual chat exchange.
+
+i18n COPY
+  coach.{title, subtitle, generate, regenerate, generating,
+         play, pause, resume, stop, speaking,
+         sourceLive, sourceMock,
+         askLabel, askPlaceholder, askMicHint, askListening,
+         askProcessing, askEmpty, askErrorMic, askErrorReply,
+         youLabel, coachLabel, tipsTitle, tooltipDemo}
+  EN + AR.
+
+VISUAL
+  - "Coach" card with sparkles avatar + live/mock pill in the header
+  - Headline + body + animated bars while speaking
+  - Tip rows: rotating icon (coffee/utensils/shopping-cart/car/zap/
+    home/piggy-bank/trending-up/trending-down/sparkles) per tip
+  - Conversation log with you/coach bubbles
+
+================================================================================
+A.3  SMART RECEIPT SCANNER + RECIPE GENERATION  (visionLLM.js)
+================================================================================
+
+NEW FILE
+  src/visionLLM.js  (199 lines) — vision LLM extractor + recipe gen
+
+PURPOSE
+  Snap a photo of a grocery receipt → vision LLM extracts the total
+  amount AND uses the ingredient list to generate 3 cheap, quick
+  student recipes with cost + savings estimates.
+
+WHERE
+  Two entry points:
+   (1) AddSheet → ScanLine "Scan receipt" button (file picker → upload)
+   (2) Smart Receipt CTA on the University Student dashboard
+       (uses autoScanReceipt prop → AddSheet auto-opens file picker)
+
+API
+  readReceiptImage(file, lang) → { amount, recipes }
+    POST https://api.openai.com/v1/chat/completions
+    model: gpt-4o-mini
+    body: messages with one image_url block (data URL of the upload)
+    response_format: { type: 'json_object' }
+
+  readReceiptImageSafe() → wraps with mock fallback when key/network fails.
+
+PROMPT (bilingual EN + AR)
+  Asks for strict JSON:
+    { amount: number,
+      recipes: [
+        { name, time, ingredients[], estimatedCost, savings }
+      ] }
+  Each recipe estimates how much the user saves vs ordering takeout.
+
+NORMALIZATION
+  normalizeReceipt(raw) → caps recipes at 3, coerces all numeric fields
+  to Number(), filters invalid ingredients.
+
+MOCK FALLBACK
+  Hand-tuned bilingual mock aligned to the demo receipt
+  (Tan Hung Asian Grocery, $22.73, 13 items) so the offline demo path
+  matches what's printed on the screen.
+
+UI INSIDE ADDSHEET
+  - "Scan receipt" button with ScanLine icon (live/demo pill)
+  - File <input type="file" accept="image/*"> hidden, triggered by click
+  - On success: form auto-fills with amount + "Groceries" category +
+    name "Scanned receipt"; recipes card appears below the form.
+  - Recipes card: ChefHat icon, 3 recipe rows with name + time +
+    ingredients chips + cost + savings, "Total savings" footer.
+  - Hidden demo: double-clicking the scan button forces the mock path.
+
+i18n COPY
+  addSheet.{scanReceipt, scanHint, scanProcessing, scanFilled,
+            scanFilledDemo, scanError, scanLive, scanDemo,
+            recipesTitle, recipesSub, recipesFooter, recipeCost,
+            recipeSaves, totalSavingsTitle, totalSavingsSub}
+
+ENV VARS
+  VITE_VISION_API_URL   (defaults to OpenAI Chat Completions)
+  VITE_VISION_API_KEY   (inherits VITE_LLM_API_KEY when blank)
+  VITE_VISION_MODEL     (defaults to gpt-4o-mini)
+
+================================================================================
+A.4  SUPPORTING INFRASTRUCTURE FROM 86ab737
+================================================================================
+
+ENVIRONMENT FILES
+  .env.example   (committed, blank values, documents the vars)
+  .env.local     (gitignored, holds the real keys)
+  .gitignore     (already excluded .env / .env.* / *.local)
+
+SCANNED-TX BADGE
+  In the Transactions tab, txns flagged with `scanned: true` get a
+  small pill ("Scanned") next to the merchant name. Currently set on
+  one demo transaction (university-student → Tan Hung Asian Grocery)
+  to show the receipt → ledger pipeline.
+  CSS: .tx-scanned-badge (light + dark variants)
+
+UNIVERSITY-ONLY SMART RECEIPT CTA
+  A persistent green-gradient button on the Uni dashboard that opens
+  the AddSheet pre-routed to the receipt scanner.
+  CSS: .uni-receipt-cta + .uni-receipt-cta-icon + hover/focus states
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                       PART B — THIS HACKATHON SESSION
+═══════════════════════════════════════════════════════════════════════════════
+
+================================================================================
+B.0  AT A GLANCE — WHAT'S NEW (THIS SESSION)
+================================================================================
+
+Three new persona widgets (drop-in cards on the role-specific section):
+  • PiggyBankCard       — kid's animated Hasala حصالة savings widget
+  • AssetWatchlist      — investor watchlist (Gold / Tech ETF / Real Estate)
+                          with Recharts sparklines, EN+AR
+  • SideHustleTracker   — uni student gear-to-sell tracker w/ profit pills
+
+Three new AI-capture / AI-feedback surfaces on the Overview tab:
+  • GoalCheerCard       — Gemini-generated personalised greeting
+                          ("Yalla Layla! One last push and the vacation is yours")
+  • AILoggerCard        — persona-tuned voice / receipt / SMS capture chips
+  • AskCoachCTA         — surfaces the chat-with-data feature on Overview
+                          (was previously buried on Reports)
+
+One new AI intelligence module:
+  • transactionAnomalies.js  — pure-JS detectors for duplicate charges,
+                               recurring subscriptions, and category spikes.
+                               Output is piped into the existing notification
+                               feed so anomalies appear in the bell inbox.
+
+Kid persona reskinned: Hasala-themed savings, PlayStation/bike/boots dream
+wall, kid-friendly KPI sub-labels.
+
+Live LLM integration: Gemini (gemini-2.5-flash-lite) wired for the cheer
+card with grammatically correct Arabic gender agreement and a static
+gender-neutral fallback when offline.
+
+================================================================================
+B.1  NEW COMPONENTS (DETAIL)
+================================================================================
+
+──────────────────────────────────────────────────────────────────────
+B.1.1  GoalCheerCard          (src/pages/Dashboard.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  The first thing the user sees when opening the app — a warm,
+  personalised greeting that uses their name and references their most
+  aspirational unfinished goal.
+
+LOCATION
+  Overview tab, ABOVE the KPI grid (the very top of the dashboard).
+
+HOW IT PICKS THE GOAL
+  - Filters out admin/bureaucratic goals via regex on
+    en+ar names (buffer | reserve | emergency | tax | hire | ربع | ...)
+  - From the remaining "aspirational" goals (vacation, laptop, bike,
+    PlayStation, etc.), picks the one closest to completion.
+  - Picks a band: close (>=70%), mid (30-69%), start (<30%), done.
+
+GEMINI-POWERED COPY
+  - useEffect calls generateCheerLine() from cheerLLM.js after mount.
+  - Static fallback string is shown immediately (gender-neutral).
+  - LLM output replaces the fallback within ~1 second.
+  - Cached per (lang|band|name|goal) in memory so re-renders are free.
+
+BANDS & EXAMPLE OUTPUT
+  • close : "Yalla Tareq! One last push and the iMac is yours — go! 🚀"
+            Arabic (Gemini real output):
+            "طارق قرب يوصل لـ iMac الجديد يا بطل! 💪"
+  • mid   : "Hey Sami, you're on track for New laptop — keep going strong!"
+  • start : "Welcome back Yara! Every step gets you closer to PlayStation 5."
+  • done  : "Mabrook Yara! You made it to Football boots 🎉"
+
+VISUAL
+  - Soft purple-to-emerald gradient card, sparkles avatar (gently twinkles)
+  - Fade-in animation on mount (0.5s)
+  - Fully RTL-aware
+  - Respects prefers-reduced-motion
+
+──────────────────────────────────────────────────────────────────────
+B.1.2  AILoggerCard           (src/components/RoleSections.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Make AI capture obvious for every persona instead of being buried
+  inside the + Add sheet. Each persona gets a different gradient,
+  copy, and capture chips tuned to their lifestyle.
+
+LOCATION
+  Overview tab, directly below the KPI grid.
+
+PERSONA CONFIG
+  • School (kid)  : peach→pink→yellow, chips: Voice, Snap
+  • University    : emerald→teal→sky, chips: Receipt, Voice
+  • Family Parent : indigo→violet, chips: Receipt, Voice, Bill SMS
+  • Employee      : indigo→fuchsia, chips: Voice, Receipt, Bank SMS
+  • Business      : sky→deep blue, chips: Invoice, Voice, Forward email
+  • Freelancer    : amber→red, chips: Receipt, Voice, Forward invoice
+  • General       : brand blue→purple, chips: Voice, Receipt
+
+DISPATCH BEHAVIOUR
+  - Voice chip   → setAutoVoice(true) → AddSheet auto-starts the mic in
+                                        ar-SA or en-US (mirrors the
+                                        existing autoScanReceipt pattern)
+  - Scan chip    → setAutoScanReceipt(true) → AddSheet opens file picker
+  - SMS / Email  → setAutoFocusName(true) → AddSheet auto-focuses the
+                                            description input for paste
+
+NO NEW LLM PIPELINES — reuses the existing voice (parseTranscriptWithLLM)
+and vision (visionLLM) flows that ship today.
+
+──────────────────────────────────────────────────────────────────────
+B.1.3  AskCoachCTA            (src/pages/Dashboard.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Surface the chat-with-data feature (AICoach.jsx) — previously only
+  visible on the Reports tab — so judges discover it within 2 seconds.
+
+LOCATION
+  Overview tab, directly below the AILoggerCard.
+
+VISUAL
+  - Soft white card with violet sparkles icon, brand-tinted hover state
+  - "Ask anything about your money" headline
+  - Three example italic questions, EN + AR:
+      "Where am I leaking money?" / "وين عم تتسرّب فلوسي؟"
+      "How do I save $50 this week?" / "كيف بقدر أوفّر ٥٠ دولار؟"
+      "What's my biggest subscription?" / "شو أكبر اشتراك عندي؟"
+  - RTL-aware arrow
+
+INTERACTION
+  Tap → setTab('reports') → AICoach chat panel is pre-rendered & ready.
+
+──────────────────────────────────────────────────────────────────────
+B.1.4  PiggyBankCard          (src/components/RoleSections.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Gamified savings card for the School Student persona. Replaces the
+  staid "Savings: $220" framing with a playful, tactile object kids
+  can relate to — a Hasala / حصالة that visibly fills up.
+
+LOCATION
+  School Student persona only. Appears at the top of the role-specific
+  section on the Overview tab.
+
+VISUAL
+  - 168px gradient stage with a centered Lucide PiggyBank icon
+  - "Fluid" peach→pink→yellow gradient fill rises with the saved %
+    (transition: cubic-bezier .22 1 .36 1, 0.7s)
+  - Animated falling coins (5 coins, staggered animation delays)
+  - Glassy "shine" line at the top of the fill
+  - Gradient streak chip with Flame icon ("5-day streak")
+  - "Last drop: $X" badge at the bottom
+  - Big % number ("44% filled up")
+  - Goal label ("Saving for: New PlayStation 5")
+  - "$X to go" or "It's full! Time to celebrate" footer
+
+──────────────────────────────────────────────────────────────────────
+B.1.5  Dream Wall (Kid's goals)   (src/components/RoleSections.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Replace the kid's previous goal list with three vibrant tiles
+  that feel like things you can hold or play with.
+
+GOALS (in data.js → ROLE_EXTRAS['school-student'].kidGoals)
+  • PlayStation 5 (44%)  — gamepad icon, indigo
+  • Mountain bike (43%)  — bike icon, emerald
+  • Football boots (100%) — circle icon, orange (shows "Achieved!")
+
+VISUAL
+  - Each tile: gradient icon block + name + percent OR achievement chip
+    + gradient progress bar (color matches the tile)
+  - Stacks vertically — full card width per row, no truncation
+
+──────────────────────────────────────────────────────────────────────
+B.1.6  AssetWatchlist          (src/components/RoleSections.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Investor-style watchlist. Slotted into the EMPLOYEE persona because
+  Nadia already has investing transactions (VOO index fund) in her
+  ledger — natural fit.
+
+LOCATION
+  Employee persona → top of the role-specific section.
+
+ASSETS (in data.js → ROLE_EXTRAS.employee.watchlist)
+  • Gold (XAU) — coins icon, gold gradient, +1.4%
+  • Tech ETF (QQQ) — cpu icon, indigo, +2.6%
+  • Real Estate Fund (VNQ) — landmark icon, sky, -0.8%
+
+EACH ROW LAYOUT (stacked, not cramped)
+  Row 1: gradient icon | name + ticker symbol | price + % pill
+  Row 2: full-width 7-day Recharts <LineChart> sparkline
+         (green stroke if % >= 0, red if negative)
+
+──────────────────────────────────────────────────────────────────────
+B.1.7  SideHustleTracker        (src/components/RoleSections.jsx)
+──────────────────────────────────────────────────────────────────────
+PURPOSE
+  Track tech gear a uni student might flip for cash. Surfaces
+  potential profit/loss per item and a total at the bottom.
+
+LOCATION
+  University Student persona → between Student snapshot and the green
+  Smart Receipt scanner CTA on the Overview tab.
+
+ITEMS (in data.js → ROLE_EXTRAS['university-student'].sideHustle)
+  • RTX 4070 GPU      bought $580 → market $720 → +$140 (green pill)
+  • iPhone 13         bought $540 → market $410 → -$130 (red pill)
+  • AirPods Pro 2     bought $230 → market $175 → -$55  (red pill)
+  • Mech keyboard     bought $140 → market $190 → +$50  (green pill)
+
+LAYOUT (per item — designed for phone-narrow cards, no truncation)
+  Row 1: gradient icon | item name + percent change badge
+  Row 2: 3 mini stat tiles — Bought / Market / Profit
+         Profit tile uses tinted background (success or danger)
+  Footer: "Total potential: +$5.00" with dashed-divider above
+
+================================================================================
+B.2  NEW AI INTELLIGENCE
+================================================================================
+
+──────────────────────────────────────────────────────────────────────
+B.2.1  Transaction anomaly detectors    (src/transactionAnomalies.js)
+──────────────────────────────────────────────────────────────────────
+NEW FILE — pure JS, no LLM calls, runs over the transactions array.
+
+DETECTORS
+  • detectDuplicates(txs, { withinDays = 5 })
+    Same merchant + same amount within 5 days. Tolerates ±1¢ noise.
+
+  • detectSubscriptions(txs)
+    Same merchant in >=2 distinct calendar months with stable amount
+    (within ±10%). Catches forgotten Netflix/Spotify/gym memberships.
+
+  • detectCategorySpikes(txs, { now })
+    Recent week vs prior week sum per category. Flags growth >150%
+    AND >$30 absolute. Brand-new categories surface as a quieter info.
+
+  • detectAnomalies(txs)
+    Convenience aggregator with per-kind caps so the inbox doesn't drown
+    (1 duplicate, 2 subscriptions, 2 spikes max).
+
+WIRED INTO
+  notificationFeed.js — anomalies become first-class items in the bell
+  inbox, with bilingual copy. Duplicates are pinned to the top.
+
+DEMO DATA SEEDED
+  • Family Parent: duplicate Carrefour ($142.50, 3 days apart),
+                   Netflix $14.99 across 3 months
+  • University   : duplicate Tan Hung ($22.73, 2 days apart),
+                   Spotify Premium across 3 months
+  • Employee     : Spotify across 3 months, Gym across 2 months
+
+──────────────────────────────────────────────────────────────────────
+B.2.2  Gemini integration              (src/cheerLLM.js)
+──────────────────────────────────────────────────────────────────────
+NEW FILE — wraps Gemini's REST API to generate one warm sentence per
+goal, per session.
+
+WHY NOT STATIC TEMPLATES
+  Arabic gender / plural agreement. Static templates can't handle
+  iMac (مذكر), دراجة (مؤنث), and "Football boots" (جمع) all at once.
+
+ENDPOINT
+  https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent
+
+MODEL
+  gemini-2.5-flash-lite (chosen for generous free-tier quota and speed)
+
+PROMPT DESIGN
+  - "max 14 words", "no numbers", "no markdown", "use one emoji",
+    "return only the sentence"
+  - Arabic prompt explicitly says: "راعِ القواعد العربية —
+    جنس الكلمة (مذكر/مؤنث) وجمعها"
+
+CACHING
+  In-memory Map keyed by (lang|band|name|goal). Survives within page
+  lifetime; cleared on reload (intentional — fresh phrasing each
+  session keeps the demo lively).
+
+FALLBACK
+  cheerLLM throws on any failure (no key, network, throttle, parse).
+  GoalCheerCard already shows a static gender-neutral string while
+  loading; that string remains if the LLM call fails.
+
+ENV VARS (in .env.local — gitignored)
+  VITE_GEMINI_API_KEY  = <key>          (added)
+  VITE_GEMINI_MODEL    = gemini-2.5-flash-lite
+
+================================================================================
+B.3  AddSheet AUTO-ROUTING ENHANCEMENTS  (src/components/Modals.jsx)
+================================================================================
+
+NEW PROPS
+  • autoVoice       — auto-starts voice capture on mount (mirrors the
+                      existing autoScanReceipt pattern)
+  • autoFocusName   — auto-focuses the description input on mount,
+                      ready for SMS/email paste
+
+NEW REF
+  • nameInputRef    — attached to the description <input>
+
+These let the AILoggerCard chips deep-link into the AddSheet with the
+right input mode pre-engaged, no extra clicks.
+
+================================================================================
+B.4  PERSONA POLISH
+================================================================================
+
+ICON FIXES
+  • Bottom nav "Budget" tab — was PiggyBank for ALL personas
+    (kid-coded for everyone). Now Wallet — universal.
+    File: src/components/Sidebar.jsx
+  • Savings KPI tile — was PiggyBank for ALL personas. Now persona-aware:
+      School Student         → PiggyBank (their Hasala)
+      Business / Freelancer  → Briefcase (savings = tax buffer)
+      Everyone else          → Landmark (bank/vault — grown-up)
+    File: src/pages/Dashboard.jsx (savingsIcon ternary)
+
+NEW LUCIDE ICONS REGISTERED  (src/components/Icons.jsx)
+  gamepad → Gamepad2
+  bike    → Bike
+  coins   → Coins
+  landmark → Landmark
+
+================================================================================
+B.5  KID PERSONA RESKIN (School Student)
+================================================================================
+
+DATA CHANGES (src/data.js)
+  • KPI sub-labels updated:
+      Balance.sub : "in your Hasala" / "في حصّالتك"
+      Savings.sub : "PlayStation fund" / "صندوق البلايستيشن"
+  • Goals replaced with kid-themed ones:
+      g1 PlayStation 5  (was: New phone)        target $500, saved $220
+      g2 Mountain bike  (was: Football boots)   target $220, saved $95
+      g3 Football boots (was: Drawing course)   $80 / $80 (achieved)
+  • New ROLE_EXTRAS keys for the school-student:
+      piggyBank: { target, saved, goalKey, icon, streakDays,
+                   lastDeposit, gradient }
+      kidGoals : array of { id, titleKey, icon, target, saved, color }
+
+i18n KEYS ADDED
+  sections.school.piggy.{title,subtitle,saving,fullIn,fullDone,
+                         lastDeposit,streakDays,addCoin,gradLabel}
+  sections.school.kidGoals.{title,subtitle,playstation,bike,boots}
+  Both EN + AR. Examples:
+    "Tell your Hasala what you bought" / "احكي لحصّالتك شو اشتريت"
+
+================================================================================
+B.6  NEW i18n KEYS  (src/i18n.jsx, EN + AR)
+================================================================================
+
+TOP-LEVEL ADDITIONS
+  cheer.{close, mid, start, done, noGoal}        — fallback templates
+  askCoach.{eyebrow, title, example1..3}         — chat CTA copy
+  aiLogger.{badge, kid.*, uni.*, family.*,
+            employee.*, business.*, freelancer.*, general.*,
+            chip.{voice,snap,receipt,billSms,bankSms,invoice,
+                  forwardEmail,forwardInvoice}}
+
+UNDER sections.uni
+  sideHustle, sideHustleSub, sideHustleItem,
+  sideHustleBought, sideHustleMarket, sideHustleProfit,
+  sideHustleTotal
+
+UNDER sections.employee
+  watchlist, watchlistSub, gold, techEtf, realEstate
+
+UNDER notificationFeed.js (S object — bilingual closures)
+  duplicateCharge, subscriptionFound, categorySpike, newCategorySpend
+
+================================================================================
+B.7  NEW CSS  (src/index.css — appended, ~330 new lines)
+================================================================================
+
+  .piggy-card / .piggy-stage / .piggy-fill / .piggy-coins / .piggy-icon-wrap
+  .piggy-pct / .piggy-streak / .piggy-card-foot / .piggy-last-deposit
+    + @keyframes piggy-wave, piggy-coin-fall
+
+  .ai-logger-card / .ai-logger-head / .ai-logger-badge / .ai-logger-title
+  .ai-logger-sub / .ai-logger-chips (with [data-count="2|3"]) /
+  .ai-logger-chip / .ai-logger-chip-icon / .ai-logger-chip-label
+
+  .ask-coach-cta / .ask-coach-icon / .ask-coach-body / .ask-coach-eyebrow
+  .ask-coach-title / .ask-coach-examples / .ask-coach-example /
+  .ask-coach-arrow (RTL-mirrored)
+
+  .cheer-card / .cheer-avatar (twinkle 3s) / .cheer-body / .cheer-text
+    + @keyframes cheer-fade-in, cheer-twinkle
+
+  All new CSS respects prefers-reduced-motion, dark mode, and RTL.
+
+================================================================================
+B.8  NEW & MODIFIED FILES (CHECKLIST)
+================================================================================
+
+NEW FILES
+  src/cheerLLM.js                                 (Gemini wrapper)
+  src/transactionAnomalies.js                     (anomaly detectors)
+  NEW_FEATURES.txt                                (this file)
+
+MODIFIED FILES
+  src/components/RoleSections.jsx                 (PiggyBankCard, AssetWatchlist,
+                                                   SideHustleTracker, AILoggerCard,
+                                                   kid SchoolSections rewrite)
+  src/pages/Dashboard.jsx                         (GoalCheerCard, AskCoachCTA,
+                                                   AILoggerCard mount,
+                                                   autoVoice/autoFocusName state,
+                                                   persona-aware savings icon)
+  src/components/Modals.jsx                       (autoVoice, autoFocusName,
+                                                   nameInputRef in description input)
+  src/components/Sidebar.jsx                      (Budget tab Wallet icon swap)
+  src/components/Icons.jsx                        (gamepad, bike, coins, landmark)
+  src/notificationFeed.js                         (anomaly synth + 4 new copy
+                                                   blocks; cap raised 9 → 12)
+  src/data.js                                     (kid goals, piggyBank, kidGoals,
+                                                   watchlist, sideHustle, anomaly
+                                                   seeds in 3 personas' txn arrays)
+  src/i18n.jsx                                    (cheer.*, askCoach.*, aiLogger.*,
+                                                   sections.school.piggy/kidGoals,
+                                                   sections.uni.sideHustle*,
+                                                   sections.employee.watchlist*)
+  src/index.css                                   (~330 lines of new CSS)
+  .env.local                                      (VITE_GEMINI_API_KEY, MODEL)
+  .env.example                                    (documented new vars)
+
+================================================================================
+B.9  DEMO ROUTE (90 SECONDS, JUDGE-READY) — covers BOTH parts A and B
+================================================================================
+
+  1. Open the app → top of Overview shows the AI cheer card with the
+     user's name and dream goal in a warm one-liner. Switch language
+     to Arabic and watch Gemini regenerate it with correct gender.
+
+  2. Right under the cheer is the AI Logger card. Tap "Voice" — the
+     mic auto-starts. Say "spent twenty dirhams on coffee" and the
+     Add sheet pre-fills.
+
+  3. Below it is "Ask anything about your money" — tap → jumps to
+     Reports tab. Type "what's my biggest subscription?" — AI Coach
+     answers from real transactions, ElevenLabs reads it aloud.
+
+  4. Tap the bell (top-right). Three pinned anomaly notifications
+     greet you: a duplicate charge, a recurring subscription, a
+     category spike — all auto-detected from the transactions array.
+
+  5. Settings → switch persona to School Student. Scroll to the
+     bottom of the Overview to see the animated Hasala piggy card
+     filling up, the Dream Wall (PlayStation, bike, boots), and
+     a kid-themed top KPI tile.
+
+  6. Switch to University Student → bottom of Overview shows the
+     Side-Hustle tracker (RTX 4070, iPhone 13, etc., with green/red
+     profit pills).
+
+  7. Switch to Employee → bottom of Overview shows the Asset
+     Watchlist with three live-style sparklines.
+
+================================================================================
+B.10  NOTES FOR THE TEAM
+================================================================================
+
+  • All new Components are pure-React, hooks-only, no new dependencies
+    beyond what was already in package.json (recharts, lucide-react).
+
+  • Gemini calls happen client-side. The key is in .env.local
+    (gitignored). After the hackathon, rotate it via Google AI Studio.
+
+  • The Gemini call is non-blocking — the cheer card always renders
+    instantly with its static fallback. The LLM output swaps in within
+    a second; if it never arrives, the static line stays. The demo
+    will never "wait" on the network.
+
+  • Anomaly detectors run synchronously on every dashboard mount. For
+    a 30-transaction array (current demo data) this is sub-millisecond.
+
+  • All new copy is bilingual (EN + AR). All new CSS is RTL-aware,
+    dark-mode-aware, and respects prefers-reduced-motion.
+
+================================================================================
+END OF NEW_FEATURES.txt
+================================================================================

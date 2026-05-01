@@ -3,6 +3,7 @@ import { ArrowRight, Bell, BellRing, Check, CheckCheck, Sparkles, X } from 'luci
 import { getIcon } from './Icons.jsx';
 import { useLang, useT } from '../i18n.jsx';
 import { formatRelativeShort, groupByDay } from '../notificationFeed.js';
+import { generateAnomalyText } from '../anomalyLLM.js';
 
 /**
  * Apple-style Notification Center.
@@ -23,6 +24,7 @@ export default function NotificationCenter({
   onMarkRead,
   onDismiss,
   onAction,
+  onSecondaryAction,
 }) {
   const t = useT();
   const { dir } = useLang();
@@ -190,6 +192,7 @@ export default function NotificationCenter({
                       dir={dir}
                       onMarkRead={onMarkRead}
                       onAction={onAction}
+                      onSecondaryAction={onSecondaryAction}
                       onDismiss={onDismiss}
                     />
                   ))}
@@ -205,6 +208,7 @@ export default function NotificationCenter({
                       dir={dir}
                       onMarkRead={onMarkRead}
                       onAction={onAction}
+                      onSecondaryAction={onSecondaryAction}
                       onDismiss={onDismiss}
                     />
                   ))}
@@ -220,6 +224,7 @@ export default function NotificationCenter({
                       dir={dir}
                       onMarkRead={onMarkRead}
                       onAction={onAction}
+                      onSecondaryAction={onSecondaryAction}
                       onDismiss={onDismiss}
                     />
                   ))}
@@ -246,14 +251,44 @@ function Section({ label, children }) {
   );
 }
 
-function NotificationItem({ notif, unread, dir, onMarkRead, onAction, onDismiss }) {
+function NotificationItem({ notif, unread, dir, onMarkRead, onAction, onSecondaryAction, onDismiss }) {
   const t = useT();
+  const { lang } = useLang();
   const Icon = getIcon(notif.icon || 'bell');
   const ArrowIcon = dir === 'rtl' ? ArrowLeftLike : ArrowRight;
+
+  // For AI-detected anomalies (duplicate / subscription), swap the static
+  // copy with a Gemini-generated line that reads naturally in the user's
+  // language (handles Arabic gender + grammar). Static text stays visible
+  // until the LLM responds; if it fails, the static text stays.
+  const [aiCopy, setAiCopy] = useState(null);
+  useEffect(() => {
+    if (!notif.anomalyKind || !notif.merchant || notif.amount == null) return;
+    let cancelled = false;
+    generateAnomalyText({
+      kind: notif.anomalyKind,
+      merchant: notif.merchant,
+      amount: notif.amount,
+      lang,
+    })
+      .then((out) => {
+        if (!cancelled && out?.title && out?.body) setAiCopy(out);
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { cancelled = true; };
+  }, [notif.anomalyKind, notif.merchant, notif.amount, lang]);
+
+  const displayTitle = aiCopy?.title || notif.title;
+  const displayBody = aiCopy?.body || notif.body;
 
   function handleAction() {
     onMarkRead?.(notif.id);
     onAction?.(notif);
+  }
+
+  function handleSecondary() {
+    onMarkRead?.(notif.id);
+    onSecondaryAction?.(notif);
   }
 
   function handleClick(e) {
@@ -276,7 +311,7 @@ function NotificationItem({ notif, unread, dir, onMarkRead, onAction, onDismiss 
 
       <div className="notif-item-body">
         <div className="notif-item-row">
-          <h3 className="notif-item-title">{notif.title}</h3>
+          <h3 className="notif-item-title">{displayTitle}</h3>
           <div className="notif-item-meta">
             {unread && (
               <span
@@ -288,20 +323,36 @@ function NotificationItem({ notif, unread, dir, onMarkRead, onAction, onDismiss 
             <time className="notif-item-time">{formatRelativeShort(notif.time, t)}</time>
           </div>
         </div>
-        <p className="notif-item-message">{notif.body}</p>
+        <p className="notif-item-message">{displayBody}</p>
 
-        {notif.action && onAction && (
-          <button
-            type="button"
-            className={`notif-item-action notif-item-action--${notif.severity}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAction();
-            }}
-          >
-            <span>{notif.action}</span>
-            <ArrowIcon size={12} strokeWidth={2.6} />
-          </button>
+        {(notif.action || notif.secondaryAction) && (
+          <div className="notif-item-actions-row">
+            {notif.action && onAction && (
+              <button
+                type="button"
+                className={`notif-item-action notif-item-action--${notif.severity}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAction();
+                }}
+              >
+                <span>{notif.action}</span>
+                <ArrowIcon size={12} strokeWidth={2.6} />
+              </button>
+            )}
+            {notif.secondaryAction && onSecondaryAction && (
+              <button
+                type="button"
+                className="notif-item-action notif-item-action--ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSecondary();
+                }}
+              >
+                <span>{notif.secondaryAction}</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

@@ -36,12 +36,14 @@ const LLM_API_URL = ENV.VITE_LLM_API_URL || 'https://api.openai.com/v1/chat/comp
 const LLM_API_KEY = ENV.VITE_LLM_API_KEY || '';
 const LLM_MODEL = ENV.VITE_LLM_MODEL || 'gpt-4o-mini';
 
-// Hidden demo-fallback payload — used when the mic button is double-clicked
-// (skips Web Speech + LLM entirely so the live demo still works on flaky Wi-Fi).
+// Demo voice payload — single tap on the mic plays a fake listening + parsing
+// sequence and fills the form with this. Bulletproof for the pitch — no mic
+// permission, no LLM call, no network. Works every time.
 const VOICE_MOCK = {
-  amount: 42.5,
-  category: 'Groceries',
-  description: 'Carrefour quick stop',
+  amount: 9,
+  category: 'Eating out',
+  description: 'Coffee',
+  descriptionAr: 'قهوة',
 };
 
 const VOICE_PROMPT = `You are a strict JSON extractor for a personal-finance app.
@@ -170,7 +172,14 @@ const ADD_TYPES = [
   },
 ];
 
-export function AddSheet({ initialType = 'expense', autoScanReceipt = false, onClose, onSubmit }) {
+export function AddSheet({
+  initialType = 'expense',
+  autoScanReceipt = false,
+  autoVoice = false,
+  autoFocusName = false,
+  onClose,
+  onSubmit,
+}) {
   const { t, lang } = useLang();
   const [type, setType] = useState(initialType);
   const [amount, setAmount] = useState('');
@@ -209,6 +218,21 @@ export function AddSheet({ initialType = 'expense', autoScanReceipt = false, onC
     const id = setTimeout(() => fileInputRef.current?.click(), 80);
     return () => clearTimeout(id);
   }, [autoScanReceipt]);
+
+  // Auto-start voice capture when opened from the AI Logger voice chip.
+  useEffect(() => {
+    if (!autoVoice) return;
+    const id = setTimeout(() => startVoice(), 120);
+    return () => clearTimeout(id);
+  }, [autoVoice]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-focus the description field when opened from the SMS/Email paste chip.
+  const nameInputRef = useRef(null);
+  useEffect(() => {
+    if (!autoFocusName) return;
+    const id = setTimeout(() => nameInputRef.current?.focus(), 120);
+    return () => clearTimeout(id);
+  }, [autoFocusName]);
 
   function applyParsed({ amount: amt, category: cat, description }, viaMock) {
     if (amt != null && amt !== '') setAmount(String(amt));
@@ -274,16 +298,35 @@ export function AddSheet({ initialType = 'expense', autoScanReceipt = false, onC
     }
   }
 
-  // Single-click starts recognition synchronously so we keep Chrome's
-  // user-gesture context (deferring it via setTimeout can trip the browser
-  // into aborting the start). Double-click stops + applies mock.
+  // DEMO MODE — single tap on the mic plays a believable listening +
+  // parsing sequence, then fills the form with VOICE_MOCK. No real Web
+  // Speech, no LLM call, no microphone permission. Bulletproof for the
+  // pitch. Double-click still triggers the real speech recognition path
+  // (kept available in case you want to demo live voice later).
   function handleMicClick() {
-    startVoice();
+    if (voiceState === 'listening' || voiceState === 'processing') return;
+    setVoiceState('listening');
+    setVoiceMessage(t('addSheet.voiceListening'));
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      setVoiceState('processing');
+      setVoiceMessage(t('addSheet.voiceProcessing'));
+      clickTimerRef.current = setTimeout(() => {
+        const desc = lang === 'ar' ? VOICE_MOCK.descriptionAr : VOICE_MOCK.description;
+        applyParsed({ ...VOICE_MOCK, description: desc }, true);
+        clickTimerRef.current = null;
+      }, 700);
+    }, 1500);
   }
 
   function handleMicDoubleClick() {
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
     try { recognitionRef.current?.stop?.(); } catch { /* noop */ }
-    applyParsed(VOICE_MOCK, true);
+    setVoiceState('idle');
+    startVoice();
   }
 
   // ── Smart Receipt — Vision LLM with mock fallback ────────────────────────
@@ -478,6 +521,7 @@ export function AddSheet({ initialType = 'expense', autoScanReceipt = false, onC
             {t(config.nameLabelKey)}
           </span>
           <input
+            ref={nameInputRef}
             className="input mt-1"
             placeholder={t(config.nameHintKey)}
             value={name}

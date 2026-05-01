@@ -2630,6 +2630,30 @@ html[dir='rtl'] .notif-item-action { letter-spacing: 0; }
 .notif-item-action--danger:hover  { color: #b91c1c; border-color: rgba(239, 68, 68, 0.4); }
 .notif-item-action--brand:hover   { color: var(--brand-700); border-color: rgba(57, 97, 251, 0.4); }
 
+.notif-item-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.notif-item-actions-row .notif-item-action {
+  margin-top: 0;
+}
+
+.notif-item-action--ghost {
+  background: transparent;
+  color: var(--text-3);
+  border-color: transparent;
+}
+
+.notif-item-action--ghost:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text-2);
+  box-shadow: none;
+}
+
 .notif-item-dismiss {
   width: 26px;
   height: 26px;
@@ -4488,6 +4512,569 @@ html[dir='rtl'] .smart-notif-progress {
 [data-theme="dark"] .tx-scanned-badge {
   background: rgba(16, 185, 129, 0.18);
   color: #6ee7b7;
+}
+
+/* ── Kids · Piggy Bank (Hasala حصالة) card ─────────────────────────────── */
+
+.piggy-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 18px 18px 16px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
+    linear-gradient(135deg, #fdba74 0%, #fb7185 50%, #c084fc 100%);
+  color: #fff;
+  box-shadow: 0 18px 40px -16px rgba(251, 113, 133, 0.55);
+}
+
+[data-theme="dark"] .piggy-card {
+  box-shadow: 0 18px 40px -16px rgba(251, 113, 133, 0.45);
+}
+
+.piggy-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.piggy-card-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.piggy-card-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.piggy-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.piggy-stage {
+  position: relative;
+  height: 168px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.piggy-fill {
+  position: absolute;
+  inset: 0 0 0 0;
+  top: auto;
+  width: 100%;
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
+  transition: height 0.7s cubic-bezier(.22, 1, .36, 1);
+  z-index: 0;
+  overflow: hidden;
+}
+
+.piggy-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0 8px,
+      transparent 8px 16px
+    );
+  opacity: 0.4;
+  animation: piggy-wave 4s linear infinite;
+}
+
+.piggy-fill-shine {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border-radius: 50%;
+  filter: blur(0.5px);
+}
+
+@keyframes piggy-wave {
+  to { transform: translateX(16px); }
+}
+
+.piggy-coins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.piggy-coin {
+  position: absolute;
+  top: -16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fde68a, #f59e0b);
+  color: #78350f;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.5);
+  animation: piggy-coin-fall 3.6s ease-in infinite;
+  opacity: 0;
+}
+
+@keyframes piggy-coin-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translateY(150px) rotate(380deg); opacity: 0; }
+}
+
+.piggy-icon-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.96);
+  filter: drop-shadow(0 8px 14px rgba(120, 30, 80, 0.35));
+}
+
+.piggy-pct {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  z-index: 4;
+  text-align: end;
+  text-shadow: 0 1px 4px rgba(120, 30, 80, 0.4);
+}
+
+[dir="rtl"] .piggy-pct {
+  right: auto;
+  left: 14px;
+  text-align: start;
+}
+
+.piggy-pct-num {
+  display: block;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.piggy-pct-lbl {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.piggy-card-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.piggy-foot-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.piggy-foot-goal {
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 2px;
+  max-width: 180px;
+}
+
+.piggy-foot-amount {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.piggy-foot-meta {
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.piggy-last-deposit {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piggy-fill::after,
+  .piggy-coin { animation: none; }
+  .piggy-fill { transition: none; }
+  .piggy-coin { display: none; }
+}
+
+/* ── AI Logger Card — persona-tuned capture surface ───────────────────── */
+
+.ai-logger-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 16px 16px 14px;
+  color: #fff;
+}
+
+.ai-logger-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 100% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
+    radial-gradient(40% 60% at 0% 100%, rgba(255, 255, 255, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+.ai-logger-head {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 12px;
+}
+
+.ai-logger-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+  margin-bottom: 8px;
+}
+
+.ai-logger-title {
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.ai-logger-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 4px;
+  opacity: 0.88;
+  line-height: 1.4;
+}
+
+.ai-logger-chips {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.ai-logger-chips[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.ai-logger-chips[data-count="3"] { grid-template-columns: 1fr 1fr 1fr; }
+
+.ai-logger-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.ai-logger-chip:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.ai-logger-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.ai-logger-chip:active {
+  transform: translateY(0);
+}
+
+.ai-logger-chip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ai-logger-chip-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-logger-chip { transition: none; }
+}
+
+/* ── Ask the Coach CTA — surfaces the chat-with-data feature on Overview ── */
+
+.ask-coach-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: start;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ask-coach-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(57, 97, 251, 0.04) 100%);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .ask-coach-cta::before {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(57, 97, 251, 0.12) 100%);
+}
+
+.ask-coach-cta:hover {
+  transform: translateY(-1px);
+  border-color: var(--brand-300);
+  box-shadow: 0 10px 24px -12px rgba(57, 97, 251, 0.35);
+}
+
+.ask-coach-cta:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(57, 97, 251, 0.35);
+}
+
+.ask-coach-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed 0%, #3961fb 100%);
+  box-shadow: 0 4px 12px -4px rgba(124, 58, 237, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+.ask-coach-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.ask-coach-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-600);
+}
+
+[data-theme="dark"] .ask-coach-eyebrow {
+  color: var(--brand-400);
+}
+
+.ask-coach-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+
+.ask-coach-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+
+.ask-coach-example {
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.ask-coach-example::after {
+  content: ' ·';
+  margin-inline-start: 2px;
+  opacity: 0.4;
+}
+
+.ask-coach-example:last-child::after {
+  content: '';
+}
+
+.ask-coach-arrow {
+  flex-shrink: 0;
+  color: var(--text-3);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+[dir="rtl"] .ask-coach-arrow {
+  transform: scaleX(-1);
+}
+
+.ask-coach-cta:hover .ask-coach-arrow {
+  color: var(--brand-600);
+  transform: translateX(2px);
+}
+
+[dir="rtl"] .ask-coach-cta:hover .ask-coach-arrow {
+  transform: scaleX(-1) translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-coach-cta,
+  .ask-coach-arrow { transition: none; }
+}
+
+/* ── AI Cheer Card — warm personalised greeting at top of Overview ────── */
+
+.cheer-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(57, 97, 251, 0.06) 50%, rgba(16, 185, 129, 0.06) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  position: relative;
+  overflow: hidden;
+  animation: cheer-fade-in 0.5s ease-out both;
+}
+
+[data-theme="dark"] .cheer-card {
+  background:
+    linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(57, 97, 251, 0.14) 50%, rgba(16, 185, 129, 0.12) 100%);
+  border-color: rgba(124, 58, 237, 0.32);
+}
+
+@keyframes cheer-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cheer-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed 0%, #3961fb 60%, #10b981 100%);
+  box-shadow: 0 4px 12px -4px rgba(124, 58, 237, 0.5);
+  animation: cheer-twinkle 3s ease-in-out infinite;
+}
+
+@keyframes cheer-twinkle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04) rotate(-2deg); }
+}
+
+.cheer-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.cheer-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cheer-card,
+  .cheer-avatar { animation: none; }
 }
 
 /* Tailwind utilities loaded last so `hidden`, `lg:flex`, etc. always win
