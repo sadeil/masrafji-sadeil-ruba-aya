@@ -1,7 +1,7 @@
 import {
   Home,
   ArrowRightLeft,
-  PiggyBank,
+  Wallet,
   Target,
   ChartBar,
   Settings as SettingsIcon,
@@ -16,7 +16,7 @@ import { useT } from '../i18n.jsx';
 const NAV_ITEMS = [
   { id: 'overview', labelKey: 'nav.home', icon: Home },
   { id: 'transactions', labelKey: 'nav.transactions', icon: ArrowRightLeft },
-  { id: 'budget', labelKey: 'nav.budget', icon: PiggyBank },
+  { id: 'budget', labelKey: 'nav.budget', icon: Wallet },
   { id: 'goals', labelKey: 'nav.goals', icon: Target },
   { id: 'reports', labelKey: 'nav.reports', icon: ChartBar },
   { id: 'settings', labelKey: 'nav.settings', icon: SettingsIcon },

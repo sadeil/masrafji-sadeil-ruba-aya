@@ -54,6 +54,10 @@ import {
   Fuel,
   AlertCircle,
   ArrowUpRight,
+  Gamepad2,
+  Bike,
+  Coins,
+  Landmark,
 } from 'lucide-react';
 
 /**
@@ -115,6 +119,10 @@ const ICON_MAP = {
   'arrow-up-right': ArrowUpRight,
   'bar-chart-3': BarChart3,
   'line-chart': LineChart,
+  gamepad: Gamepad2,
+  bike: Bike,
+  coins: Coins,
+  landmark: Landmark,
 };
 
 export function getIcon(key, fallback = Circle) {

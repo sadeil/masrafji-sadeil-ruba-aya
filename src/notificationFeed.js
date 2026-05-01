@@ -27,6 +27,7 @@
 
 import notifications from './notifications.js';
 import { fmtMoney } from './format.js';
+import { detectAnomalies } from './transactionAnomalies.js';
 
 /* ---------------------------------------------------------------------------
  * Heuristic id → category mapping.
@@ -129,6 +130,58 @@ const S = {
       title: 'ملخّصك الأسبوعي جاهز',
       body: 'شوف وين راحت فلوسك وكيف هاد الأسبوع مقارنة بغيره.',
       action: 'فتح التقرير',
+    }),
+  },
+  duplicateCharge: {
+    en: (name, amountStr, daysApart) => ({
+      title: `Possible duplicate at ${name}`,
+      body: `${amountStr} was charged ${daysApart === 1 ? 'a day' : `${daysApart} days`} after an identical charge. Worth a quick check.`,
+      action: 'Dispute charge',
+      secondary: 'Contact bank',
+    }),
+    ar: (name, amountStr, daysApart) => ({
+      title: `يمكن خصم مكرّر — ${name}`,
+      body: `تم خصم ${amountStr} بعد ${daysApart === 1 ? 'يوم واحد' : `${daysApart} أيام`} من خصم مطابق. راجعها بسرعة.`,
+      action: 'تقديم اعتراض',
+      secondary: 'تواصل مع البنك',
+    }),
+  },
+  subscriptionFound: {
+    en: (name, amountStr, monthsSeen) => ({
+      title: `Recurring: ${name}`,
+      body: `Charged about ${amountStr}/month for ${monthsSeen} months. If you don't use it, cancel to free that up.`,
+      action: 'Cancel subscription',
+      secondary: 'Keep it',
+    }),
+    ar: (name, amountStr, monthsSeen) => ({
+      title: `اشتراك متكرّر — ${name}`,
+      body: `حوالي ${amountStr} شهرياً منذ ${monthsSeen} أشهر. إذا مش بتستخدمه، إلغاءه بيوفّر هالمبلغ.`,
+      action: 'إلغاء الاشتراك',
+      secondary: 'احتفظ فيه',
+    }),
+  },
+  categorySpike: {
+    en: (cat, pct, amountStr) => ({
+      title: `${cat} spending up ${pct}%`,
+      body: `You're spending ${amountStr} on ${cat.toLowerCase()} this week — well above last week's pace.`,
+      action: 'See breakdown',
+    }),
+    ar: (cat, pct, amountStr) => ({
+      title: `${cat} ارتفعت بنسبة ${pct}%`,
+      body: `صرفت ${amountStr} على ${cat} هاد الأسبوع — أعلى بكتير من الأسبوع الماضي.`,
+      action: 'عرض التفاصيل',
+    }),
+  },
+  newCategorySpend: {
+    en: (cat, amountStr) => ({
+      title: `New spending in ${cat}`,
+      body: `${amountStr} on ${cat.toLowerCase()} this week — first time in a while. Just a heads-up.`,
+      action: 'See breakdown',
+    }),
+    ar: (cat, amountStr) => ({
+      title: `صرف جديد في ${cat}`,
+      body: `${amountStr} على ${cat} هاد الأسبوع — أول مرة من فترة. مجرّد تنبيه.`,
+      action: 'عرض التفاصيل',
     }),
   },
 };
@@ -280,6 +333,209 @@ export function buildNotificationFeed(roleId, lang = 'en', data = {}, currency =
     });
   });
 
+  /* ── DEMO-GUARANTEED anomaly notifications ────────────────────────────
+   * These are hardcoded per persona so the demo flow ALWAYS shows the
+   * Dispute / Cancel-subscription action buttons, even if the live
+   * detector would skip a transaction or the user has dismissed alerts
+   * in a previous session. They're pushed before merge with curated
+   * items, sorted by pinned-first, so duplicates land at the very top. */
+  const DEMO_ANOMALIES = {
+    'university-student': [
+      {
+        id: 'demo-dup-visa-amazon',
+        kind: 'duplicate',
+        severity: 'danger',
+        icon: 'alert-circle',
+        merchant: 'Amazon.com',
+        amount: 34.99,
+        copyEn: {
+          title: 'Duplicate Visa charge — Amazon.com',
+          body: 'Your Visa was charged $34.99 twice within seconds. Looks like a card double-billing.',
+          action: 'Dispute charge',
+          secondary: 'Contact bank',
+        },
+        copyAr: {
+          title: 'خصم مكرّر على بطاقتك — Amazon.com',
+          body: 'تم خصم ٣٤٫٩٩ دولار مرّتين خلال ثوانٍ. يبدو ازدواجاً في النظام — راجع العمليّة بسرعة.',
+          action: 'تقديم اعتراض',
+          secondary: 'تواصل مع البنك',
+        },
+        offsetMin: 35,
+      },
+      {
+        id: 'demo-sub-spotify',
+        kind: 'subscription',
+        severity: 'info',
+        icon: 'refresh-cw',
+        merchant: 'Spotify Premium',
+        amount: 4.99,
+        copyEn: {
+          title: 'Recurring: Spotify Premium',
+          body: "Charged $4.99/month for 3 months. If you don't use it, cancel to free that up.",
+          action: 'Cancel subscription',
+          secondary: 'Keep it',
+        },
+        copyAr: {
+          title: 'اشتراك متكرّر — Spotify Premium',
+          body: 'مُشتركٌ بـ ٤٫٩٩ دولار شهرياً منذ ٣ أشهر. إن لم تستخدمه، إلغاؤه يوفّر هذا المبلغ.',
+          action: 'إلغاء الاشتراك',
+          secondary: 'احتفظ فيه',
+        },
+        offsetMin: 4 * 60,
+      },
+    ],
+    'family-parent': [
+      {
+        id: 'demo-dup-carrefour',
+        kind: 'duplicate',
+        severity: 'danger',
+        icon: 'alert-circle',
+        merchant: 'Carrefour',
+        amount: 142.50,
+        copyEn: {
+          title: 'Duplicate Visa charge — Carrefour',
+          body: 'Your card was charged $142.50 twice within seconds. Looks like a billing duplicate.',
+          action: 'Dispute charge',
+          secondary: 'Contact bank',
+        },
+        copyAr: {
+          title: 'خصم مكرّر على بطاقتك — كارفور',
+          body: 'تم خصم ١٤٢٫٥٠ دولار مرّتين خلال ثوانٍ. يبدو ازدواجاً في النظام — راجع العمليّة بسرعة.',
+          action: 'تقديم اعتراض',
+          secondary: 'تواصل مع البنك',
+        },
+        offsetMin: 35,
+      },
+      {
+        id: 'demo-sub-netflix',
+        kind: 'subscription',
+        severity: 'info',
+        icon: 'refresh-cw',
+        merchant: 'Netflix',
+        amount: 14.99,
+        copyEn: {
+          title: 'Recurring: Netflix',
+          body: "Charged $14.99/month for 3 months. If you don't use it, cancel to free that up.",
+          action: 'Cancel subscription',
+          secondary: 'Keep it',
+        },
+        copyAr: {
+          title: 'اشتراك متكرّر — Netflix',
+          body: 'مُشتركٌ بـ ١٤٫٩٩ دولار شهرياً منذ ٣ أشهر. إن لم تستخدمه، إلغاؤه يوفّر هذا المبلغ.',
+          action: 'إلغاء الاشتراك',
+          secondary: 'احتفظ فيه',
+        },
+        offsetMin: 4 * 60,
+      },
+    ],
+    employee: [
+      {
+        id: 'demo-sub-spotify-emp',
+        kind: 'subscription',
+        severity: 'info',
+        icon: 'refresh-cw',
+        merchant: 'Spotify',
+        amount: 9.99,
+        copyEn: {
+          title: 'Recurring: Spotify',
+          body: "Charged $9.99/month for 3 months. If you don't use it, cancel to free that up.",
+          action: 'Cancel subscription',
+          secondary: 'Keep it',
+        },
+        copyAr: {
+          title: 'اشتراك متكرّر — Spotify',
+          body: 'مُشتركٌ بـ ٩٫٩٩ دولار شهرياً منذ ٣ أشهر. إن لم تستخدمه، إلغاؤه يوفّر هذا المبلغ.',
+          action: 'إلغاء الاشتراك',
+          secondary: 'احتفظ فيه',
+        },
+        offsetMin: 4 * 60,
+      },
+    ],
+  };
+
+  const demoList = DEMO_ANOMALIES[roleId] || [];
+  demoList.forEach((d) => {
+    const copy = lang === 'ar' ? d.copyAr : d.copyEn;
+    synthesized.push({
+      id: d.id,
+      severity: d.severity,
+      icon: d.icon,
+      category: d.kind === 'subscription' ? 'subscriptions' : 'tips',
+      tab: 'transactions',
+      title: copy.title,
+      body: copy.body,
+      action: copy.action,
+      secondaryAction: copy.secondary,
+      anomalyKind: d.kind,
+      merchant: d.merchant,
+      amount: d.amount,
+      time: new Date(now - d.offsetMin * MIN),
+      pinned: d.kind === 'duplicate',
+    });
+  });
+
+  /* ── AI anomaly detectors (live, additive — won't duplicate the IDs above) */
+  const anomalies = detectAnomalies(data.transactions || [], { now });
+
+  anomalies.duplicates.forEach((a, i) => {
+    const name = lang === 'ar' && a.nameAr ? a.nameAr : a.name;
+    const copy = S.duplicateCharge[lang](name, fmtMoney(Math.abs(a.amount), currency), a.daysApart);
+    synthesized.push({
+      id: `auto-dup-${i}`,
+      severity: a.severity,
+      icon: 'alert-circle',
+      category: 'tips',
+      tab: 'transactions',
+      title: copy.title,
+      body: copy.body,
+      action: copy.action,
+      secondaryAction: copy.secondary,
+      anomalyKind: 'duplicate',
+      time: new Date(now - (35 + i * 60) * MIN),
+      pinned: true,
+    });
+  });
+
+  anomalies.subscriptions.forEach((a, i) => {
+    const name = lang === 'ar' && a.nameAr ? a.nameAr : a.name;
+    const copy = S.subscriptionFound[lang](
+      name,
+      fmtMoney(Math.abs(a.amount), currency),
+      a.monthsSeen,
+    );
+    synthesized.push({
+      id: `auto-sub-${i}`,
+      severity: a.severity,
+      icon: 'refresh-cw',
+      category: 'subscriptions',
+      tab: 'transactions',
+      title: copy.title,
+      body: copy.body,
+      action: copy.action,
+      secondaryAction: copy.secondary,
+      anomalyKind: 'subscription',
+      time: new Date(now - (4 + i) * HOUR),
+    });
+  });
+
+  anomalies.spikes.forEach((a, i) => {
+    const cat = catLabel(a.category, lang);
+    const copy = a.firstWeek
+      ? S.newCategorySpend[lang](cat, fmtMoney(Math.abs(a.amount), currency))
+      : S.categorySpike[lang](cat, a.pct, fmtMoney(Math.abs(a.amount), currency));
+    synthesized.push({
+      id: `auto-spike-${a.category}-${i}`,
+      severity: a.severity,
+      icon: 'trending-up',
+      category: 'budget',
+      tab: 'reports',
+      title: copy.title,
+      body: copy.body,
+      action: copy.action,
+      time: new Date(now - (2 + i) * HOUR),
+    });
+  });
+
   // Weekly summary (always available — cheap delight).
   const weekly = S.weeklySummary[lang]();
   synthesized.push({
@@ -309,7 +565,7 @@ export function buildNotificationFeed(roleId, lang = 'en', data = {}, currency =
     return b.time.getTime() - a.time.getTime();
   });
 
-  return merged.slice(0, 9);
+  return merged.slice(0, 12);
 }
 
 /* ---------------------------------------------------------------------------

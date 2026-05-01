@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   Bell,
@@ -7,12 +7,16 @@ import {
   TrendingUp,
   TrendingDown,
   PiggyBank,
+  Landmark,
+  Briefcase,
   Sparkles,
   AlertTriangle,
   Info,
   CheckCircle2,
   XCircle,
   ScanLine,
+  MessageCircle,
+  ArrowRight,
 } from 'lucide-react';
 import {
   Card,
@@ -29,19 +33,20 @@ import {
 import { CashflowChart, CategoryDonut } from '../components/Charts.jsx';
 import { BottomNav, getNavItem } from '../components/Sidebar.jsx';
 import { CategoryIcon, getIcon } from '../components/Icons.jsx';
-import { RoleSpecificSections } from '../components/RoleSections.jsx';
+import { RoleSpecificSections, AILoggerCard, AssetWatchlist, FXRateCard } from '../components/RoleSections.jsx';
 import { AddSheet, Toast } from '../components/Modals.jsx';
 import AICoach from '../components/AICoach.jsx';
 import { Logo, Wordmark } from '../components/Brand.jsx';
 import Settings from '../components/Settings.jsx';
 import SmartNotification from '../components/SmartNotification.jsx';
 import NotificationCenter from '../components/NotificationCenter.jsx';
-import { DASHBOARD_DATA, ROLE_BY_ID } from '../data.js';
+import { DASHBOARD_DATA, ROLE_BY_ID, ROLE_EXTRAS } from '../data.js';
 import { fmtMoney, fmtRelative, pick } from '../format.js';
 import { useLang, useT, useCategoryLabel } from '../i18n.jsx';
 import { pickNotification } from '../notifications.js';
 import { buildNotificationFeed } from '../notificationFeed.js';
 import { pickShortcutNotification } from '../shortcutNotifications.js';
+import { generateCheerLine, GEMINI_API_KEY } from '../cheerLLM.js';
 
 export default function Dashboard({
   roleId,
@@ -61,11 +66,23 @@ export default function Dashboard({
   const [filter, setFilter] = useState('all');
   const [addType, setAddType] = useState(null);
   const [autoScanReceipt, setAutoScanReceipt] = useState(false);
+  const [autoVoice, setAutoVoice] = useState(false);
+  const [autoFocusName, setAutoFocusName] = useState(false);
   const [toast, setToast] = useState(null);
   const [notification, setNotification] = useState(null);
 
   function openSmartReceipt() {
     setAutoScanReceipt(true);
+    setAddType('expense');
+  }
+
+  function openVoiceLogger() {
+    setAutoVoice(true);
+    setAddType('expense');
+  }
+
+  function openPasteLogger() {
+    setAutoFocusName(true);
     setAddType('expense');
   }
 
@@ -77,20 +94,40 @@ export default function Dashboard({
   const t = useT();
   const { lang } = useLang();
 
-  const data = DASHBOARD_DATA[roleId] || DASHBOARD_DATA.general;
+  // Transactions added via the AddSheet during this session. Stored in state
+  // (not localStorage) so a fresh reload returns to a clean demo baseline.
+  // Keyed by roleId so switching personas keeps each persona's additions
+  // separate and clears them when switching back & forth.
+  const [addedTxByRole, setAddedTxByRole] = useState({});
+
+  const baseData = DASHBOARD_DATA[roleId] || DASHBOARD_DATA.general;
+  const data = useMemo(() => {
+    const extras = addedTxByRole[roleId] || [];
+    if (extras.length === 0) return baseData;
+    return { ...baseData, transactions: [...extras, ...baseData.transactions] };
+  }, [baseData, addedTxByRole, roleId]);
+
   const role = ROLE_BY_ID[roleId];
 
-  /* Pick a smart per-role notification when the dashboard mounts and whenever
-     the user switches role/language. The notification disappears after 10s
-     (handled inside SmartNotification) or on dismiss/action. */
+  /* Show ONE smart notification 5 seconds after the dashboard first mounts.
+     After that, auto-pops are suppressed — the only way to surface another
+     notification is the hidden "1" key shortcut below. This keeps the demo
+     calm while the user explores, and lets us trigger fresh notifications
+     on demand during a pitch. */
+  const hasShownInitialNotifRef = useRef(false);
   useEffect(() => {
-    if (!roleId) return;
+    if (!roleId) return undefined;
     if (notificationsOn === false) {
       setNotification(null);
-      return;
+      return undefined;
     }
-    const next = pickNotification(roleId, lang, data);
-    setNotification(next);
+    if (hasShownInitialNotifRef.current) return undefined;
+    const id = setTimeout(() => {
+      hasShownInitialNotifRef.current = true;
+      const next = pickNotification(roleId, lang, data);
+      if (next) setNotification(next);
+    }, 5000);
+    return () => clearTimeout(id);
   }, [roleId, lang, notificationsOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ------------------------------------------------------------------ */
@@ -150,7 +187,13 @@ export default function Dashboard({
       /* ignore */
     }
 
-    const visible = built.filter((n) => !dismissed.has(n.id));
+    // Demo-guaranteed notifications (id prefix `demo-`) ignore the dismissed
+    // set so an accidental tap on the X doesn't kill them for the rest of the
+    // demo. The user can still dismiss them in-session — they just come back
+    // on reload.
+    const visible = built.filter(
+      (n) => n.id.startsWith('demo-') || !dismissed.has(n.id),
+    );
     const unread = new Set(visible.filter((n) => !read.has(n.id)).map((n) => n.id));
 
     setFeed(visible);
@@ -194,6 +237,51 @@ export default function Dashboard({
   function handleCenterAction(n) {
     handleNotificationAction(n);
     setCenterOpen(false);
+  }
+
+  // Secondary action on anomaly notifications — Dispute / Cancel sub /
+  // Contact bank etc. We don't actually file anything (this is a demo);
+  // we surface a toast that completes the user flow visually.
+  function handleSecondaryAction(n) {
+    const kind = n?.anomalyKind;
+    let key = 'toasts.actionFiled';
+    if (kind === 'duplicate') {
+      // Either "Dispute charge" (primary) or "Contact bank" (secondary).
+      key = n.action === n.title ? 'toasts.bankContacted' : 'toasts.disputeFiled';
+      // Heuristic: secondaryAction was the one tapped, so always bank-contact.
+      key = 'toasts.bankContacted';
+    } else if (kind === 'subscription') {
+      key = 'toasts.subscriptionKept';
+    }
+    setToast(t(key));
+    if (n?.id && unreadIds.has(n.id)) {
+      const next = new Set(unreadIds);
+      next.delete(n.id);
+      setUnreadIds(next);
+      const readSet = new Set(feed.map((x) => x.id).filter((id) => !next.has(id)));
+      persistRead(readSet);
+    }
+  }
+
+  // Primary action on anomaly notifications. For "Dispute charge" /
+  // "Cancel subscription" we want a toast, not a tab switch.
+  function handleAnomalyPrimary(n) {
+    const kind = n?.anomalyKind;
+    if (kind === 'duplicate') {
+      setToast(t('toasts.disputeFiled'));
+    } else if (kind === 'subscription') {
+      setToast(t('toasts.subscriptionCancelled'));
+    } else {
+      handleNotificationAction(n);
+      return;
+    }
+    if (n?.id && unreadIds.has(n.id)) {
+      const next = new Set(unreadIds);
+      next.delete(n.id);
+      setUnreadIds(next);
+      const readSet = new Set(feed.map((x) => x.id).filter((id) => !next.has(id)));
+      persistRead(readSet);
+    }
   }
 
   function markRead(id) {
@@ -262,7 +350,18 @@ export default function Dashboard({
         onMarkAllRead={markAllRead}
         onMarkRead={markRead}
         onDismiss={dismissNotif}
-        onAction={handleCenterAction}
+        onAction={(n) => {
+          if (n?.anomalyKind) {
+            handleAnomalyPrimary(n);
+            setCenterOpen(false);
+          } else {
+            handleCenterAction(n);
+          }
+        }}
+        onSecondaryAction={(n) => {
+          handleSecondaryAction(n);
+          setCenterOpen(false);
+        }}
       />
 
       <main className="dashboard-main">
@@ -274,6 +373,9 @@ export default function Dashboard({
               currency={currency}
               onAdd={(typ) => setAddType(typ)}
               onOpenSmartReceipt={openSmartReceipt}
+              onOpenVoice={openVoiceLogger}
+              onOpenPaste={openPasteLogger}
+              onAskCoach={() => setTab('reports')}
             />
           )}
           {tab === 'transactions' && (
@@ -326,13 +428,40 @@ export default function Dashboard({
         <AddSheet
           initialType={addType}
           autoScanReceipt={autoScanReceipt}
+          autoVoice={autoVoice}
+          autoFocusName={autoFocusName}
           onClose={() => {
             setAddType(null);
             setAutoScanReceipt(false);
+            setAutoVoice(false);
+            setAutoFocusName(false);
           }}
           onSubmit={(payload) => {
             const typeLabel = t(`addSheet.types.${payload.type}`);
             setToast(t('addSheet.saved', { type: typeLabel }));
+
+            // Only mirror expense/income into the ledger — bills and goals
+            // belong on their own tabs, not the transactions feed.
+            if (payload.type === 'expense' || payload.type === 'income') {
+              const isIncome = payload.type === 'income';
+              const amt = Math.abs(Number(payload.amount) || 0);
+              // Match the demo "today" the rest of the app's data uses, so
+              // fmtRelative renders "Today / اليوم" instead of "X days ago".
+              const demoToday = new Date(2026, 3, 30).toISOString();
+              const newTx = {
+                id: `user-${Date.now()}`,
+                name: payload.name || (isIncome ? 'Income' : 'Expense'),
+                nameAr: payload.name || (isIncome ? 'دخل' : 'مصروف'),
+                category: payload.category || (isIncome ? 'Income' : 'Other'),
+                amount: isIncome ? amt : -amt,
+                date: demoToday,
+                icon: isIncome ? 'trending-up' : 'utensils',
+              };
+              setAddedTxByRole((prev) => ({
+                ...prev,
+                [roleId]: [newTx, ...(prev[roleId] || [])],
+              }));
+            }
           }}
         />
       )}
@@ -450,15 +579,27 @@ function navKeyFromTab(t) {
 /* Overview tab                                                               */
 /* -------------------------------------------------------------------------- */
 
-function OverviewTab({ data, role, currency, onAdd, onOpenSmartReceipt }) {
+function OverviewTab({ data, role, currency, onAdd, onOpenSmartReceipt, onOpenVoice, onOpenPaste, onAskCoach }) {
   const t = useT();
   const { lang } = useLang();
   const catLabel = useCategoryLabel();
   const { kpis, cashflow, categories, transactions, goals, bills, alerts } = data;
   const totalCategories = categories.reduce((s, c) => s + c.value, 0);
 
+  // Persona-tuned savings icon — Hasala for kids, Landmark for grown-ups,
+  // Briefcase for business owners (savings reads as "tax buffer / reserve").
+  const savingsIcon =
+    role.id === 'school-student'
+      ? PiggyBank
+      : role.id === 'business' || role.id === 'freelancer'
+      ? Briefcase
+      : Landmark;
+
   return (
     <div className="space-y-4">
+      {/* AI greeting — warm, personalised, supportive */}
+      <GoalCheerCard user={data.user} goals={data.goals} lang={lang} />
+
       {/* KPIs — phone-friendly 2-column grid */}
       <section className="grid grid-cols-2 gap-3">
         <StatCard
@@ -493,11 +634,34 @@ function OverviewTab({ data, role, currency, onAdd, onOpenSmartReceipt }) {
           value={fmtMoney(kpis.savings.value, currency)}
           delta={kpis.savings.delta}
           sub={pick(kpis.savings, 'sub', lang)}
-          icon={PiggyBank}
+          icon={savingsIcon}
           iconBg="rgba(57, 97, 251, 0.12)"
           iconColor="var(--brand-600)"
         />
       </section>
+
+      {/* AI Logger — persona-tuned capture surface */}
+      <AILoggerCard
+        roleId={role.id}
+        onOpenVoice={onOpenVoice}
+        onOpenScan={onOpenSmartReceipt}
+        onOpenPaste={onOpenPaste}
+      />
+
+      {/* Ask the Coach — surfaces the chat-with-data feature on Overview */}
+      <AskCoachCTA onAskCoach={onAskCoach} />
+
+      {/* Employee-only: surface investments + currency exchange near the top
+          so users don't have to scroll to see live market data. */}
+      {role.id === 'employee' && (
+        <>
+          <AssetWatchlist
+            assets={ROLE_EXTRAS.employee.watchlist}
+            currency={currency}
+          />
+          <FXRateCard />
+        </>
+      )}
 
       {/* Quick actions */}
       <Card className="p-4">
@@ -699,6 +863,119 @@ function QuickAction({ icon: Icon, label, color, onClick }) {
         <Icon size={18} strokeWidth={2.2} />
       </span>
       <span className="quick-action-label">{label}</span>
+    </button>
+  );
+}
+
+// Goals like "Tax buffer", "Emergency fund", "3-month buffer" are real, but
+// they're not dreams — they're admin. The cheer card skips them whenever there
+// is at least one aspirational goal (a thing you can hold, visit, or play).
+const BORING_GOAL_RX = /(buffer|reserve|emergency|tax|hire|payroll|q[1-4]|target|equipment|refresh|احتياطي|طوارئ|ضريبة|راتب|توظيف|ربع|هدف الإيرادات|تجديد|معدّات)/i;
+
+function isAspirational(g) {
+  const en = String(g?.name || '');
+  const ar = String(g?.nameAr || '');
+  if (BORING_GOAL_RX.test(en) || BORING_GOAL_RX.test(ar)) return false;
+  return true;
+}
+
+function GoalCheerCard({ user, goals = [], lang }) {
+  const t = useT();
+
+  const firstName = (lang === 'ar' && user.nameAr ? user.nameAr : user.name).split(' ')[0];
+
+  const { band, goalLabel } = useMemo(() => {
+    const enriched = (goals || [])
+      .filter((g) => g && g.target > 0)
+      .map((g) => ({ ...g, pct: (g.saved / g.target) * 100 }));
+    const aspirational = enriched.filter(isAspirational);
+    const pool = aspirational.length > 0 ? aspirational : enriched;
+    const inProg = pool.filter((g) => g.pct < 100).sort((a, b) => b.pct - a.pct);
+    const done = pool.filter((g) => g.pct >= 100);
+
+    if (inProg.length > 0) {
+      const g = inProg[0];
+      return {
+        band: g.pct >= 70 ? 'close' : g.pct >= 30 ? 'mid' : 'start',
+        goalLabel: pick(g, 'name', lang),
+      };
+    }
+    if (done.length > 0) {
+      return { band: 'done', goalLabel: pick(done[0], 'name', lang) };
+    }
+    return { band: 'noGoal', goalLabel: '' };
+  }, [goals, lang]);
+
+  // Static fallback — gender-neutral phrasing that works for any noun. Shown
+  // immediately while Gemini is generating, and remains the final text if the
+  // API call fails (no key, offline, throttled).
+  const fallback = t(`cheer.${band}`, { name: firstName, goal: goalLabel });
+
+  const [message, setMessage] = useState(fallback);
+  const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    setMessage(fallback);
+
+    if (!GEMINI_API_KEY || band === 'noGoal' || !goalLabel) return undefined;
+
+    (async () => {
+      try {
+        const line = await generateCheerLine({
+          name: firstName,
+          goal: goalLabel,
+          lang,
+          band,
+        });
+        if (!cancelledRef.current && line) setMessage(line);
+      } catch {
+        // Keep the static fallback already on screen.
+      }
+    })();
+
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, [firstName, goalLabel, lang, band, fallback]);
+
+  return (
+    <div className="cheer-card" role="status" aria-live="polite">
+      <span className="cheer-avatar" aria-hidden="true">
+        <Sparkles size={18} strokeWidth={2.4} />
+      </span>
+      <div className="cheer-body">
+        <span className="cheer-text">{message}</span>
+      </div>
+    </div>
+  );
+}
+
+function AskCoachCTA({ onAskCoach }) {
+  const t = useT();
+  const examples = [
+    t('askCoach.example1'),
+    t('askCoach.example2'),
+    t('askCoach.example3'),
+  ];
+  return (
+    <button type="button" className="ask-coach-cta" onClick={onAskCoach}>
+      <span className="ask-coach-icon">
+        <MessageCircle size={20} strokeWidth={2.2} />
+      </span>
+      <span className="ask-coach-body">
+        <span className="ask-coach-eyebrow">
+          <Sparkles size={11} strokeWidth={2.6} />
+          {t('askCoach.eyebrow')}
+        </span>
+        <span className="ask-coach-title">{t('askCoach.title')}</span>
+        <span className="ask-coach-examples">
+          {examples.map((ex, i) => (
+            <span key={i} className="ask-coach-example">"{ex}"</span>
+          ))}
+        </span>
+      </span>
+      <ArrowRight size={16} strokeWidth={2.4} className="ask-coach-arrow" />
     </button>
   );
 }

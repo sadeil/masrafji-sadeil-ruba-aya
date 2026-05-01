@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -134,6 +134,7 @@ export default function Onboarding({
           <Step3Income
             t={t}
             lang={lang}
+            roleId={pendingRole}
             selected={pendingIncome}
             onSelect={setPendingIncome}
           />
@@ -368,7 +369,44 @@ function Step2Goal({ t, lang, selected, onSelect }) {
 /* Step 3 — Income type                                                       */
 /* -------------------------------------------------------------------------- */
 
-function Step3Income({ t, lang, selected, onSelect }) {
+// Per-role allowed income types — keeps the list lifestyle-appropriate.
+// School Student: only "allowance" (kids don't earn salaries).
+// University Student: variable / allowance / multi / none.
+// Employee: fixed-salary / variable / multi.
+// Business / Freelancer: business / variable / multi.
+// Family Parent / General: all.
+const INCOME_TYPES_BY_ROLE = {
+  'school-student': ['allowance'],
+  'university-student': ['allowance', 'variable', 'multi', 'none'],
+  employee: ['fixed-salary', 'variable', 'multi'],
+  business: ['business', 'variable', 'multi'],
+  freelancer: ['variable', 'business', 'multi'],
+};
+
+const DEFAULT_INCOME_BY_ROLE = {
+  'school-student': 'allowance',
+  'university-student': 'allowance',
+  employee: 'fixed-salary',
+  business: 'business',
+  freelancer: 'variable',
+  'family-parent': 'fixed-salary',
+};
+
+function Step3Income({ t, lang, roleId, selected, onSelect }) {
+  // Auto-select a sensible default the first time this step renders for
+  // a given role — the user can still tap to change it. Kids only see
+  // "allowance" so this is essentially a confirmation step for them.
+  useEffect(() => {
+    if (selected) return;
+    const def = DEFAULT_INCOME_BY_ROLE[roleId];
+    if (def) onSelect(def);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleId]);
+
+  const allowedIds = INCOME_TYPES_BY_ROLE[roleId];
+  const visibleTypes = allowedIds
+    ? INCOME_TYPES.filter((it) => allowedIds.includes(it.id))
+    : INCOME_TYPES;
   return (
     <>
       <div className="onboarding-hero">
@@ -381,7 +419,7 @@ function Step3Income({ t, lang, selected, onSelect }) {
       </div>
 
       <div className="option-grid">
-        {INCOME_TYPES.map((it) => {
+        {visibleTypes.map((it) => {
           const Icon = getIcon(it.icon);
           const isSelected = selected === it.id;
           return (

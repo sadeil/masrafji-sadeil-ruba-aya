@@ -125,58 +125,59 @@ export async function readReceiptImage(file, lang = 'en') {
 // Mock fallback — bilingual, demo-ready
 // ──────────────────────────────────────────────────────────────────────────────
 
-// Mocks aligned with the demo receipt (Tan Hung Asian Grocery, $22.73, 13 items)
-// so the offline fallback matches what's on screen during the live demo.
+// Mocks aligned with the user's actual demo receipt — chicken breast,
+// mixed mushrooms (Boldy Chef), sardines, cucumbers, labneh, yogurt,
+// lemon, whipped cream. Total ≈ $82.64. Recipes use these exact items.
 const MOCKS = {
   en: {
-    amount: 22.73,
+    amount: 82.64,
     recipes: [
       {
-        name: 'Veggie stir-fry with rice noodles',
-        time: '15 min',
-        ingredients: ['Rice noodles', 'Red capsicum', 'Yellow capsicum', 'Chinese broccoli', 'Beans shoots', 'Chives'],
-        estimatedCost: 2.40,
-        savings: 9.60,
-      },
-      {
-        name: 'Japanese pumpkin soba bowl',
+        name: 'Creamy chicken & mushroom skillet',
         time: '20 min',
-        ingredients: ['Soba noodles', 'Japanese pumpkin', 'Herb mint', 'Soy sauce', 'Chives'],
-        estimatedCost: 2.10,
-        savings: 8.90,
+        ingredients: ['Chicken breast', 'Mixed mushrooms', 'Whipped cream', 'Garlic', 'Black pepper'],
+        estimatedCost: 4.20,
+        savings: 11.80,
       },
       {
-        name: 'Zucchini & celery chow mein',
-        time: '12 min',
-        ingredients: ['Japanese noodles', 'Zucchini', 'Celery', 'Capsicum', 'Garlic'],
-        estimatedCost: 2.60,
-        savings: 9.40,
+        name: 'Mediterranean labneh & cucumber bowl',
+        time: '8 min',
+        ingredients: ['Labneh', 'Cucumber', 'Lemon', 'Olive oil', 'Mint'],
+        estimatedCost: 2.40,
+        savings: 7.60,
+      },
+      {
+        name: 'Sardine & yogurt pasta',
+        time: '15 min',
+        ingredients: ['Sardines', 'Yogurt', 'Lemon', 'Cucumber', 'Garlic'],
+        estimatedCost: 3.10,
+        savings: 8.90,
       },
     ],
   },
   ar: {
-    amount: 22.73,
+    amount: 82.64,
     recipes: [
       {
-        name: 'خضار سوتيه مع نودلز الأرز',
-        time: '١٥ دقيقة',
-        ingredients: ['نودلز أرز', 'فلفل أحمر', 'فلفل أصفر', 'بروكلي صيني', 'برعم فاصولياء', 'ثوم أخضر'],
-        estimatedCost: 2.40,
-        savings: 9.60,
-      },
-      {
-        name: 'بولة سوبا مع القرع الياباني',
+        name: 'صدر دجاج بالفطر والكريما',
         time: '٢٠ دقيقة',
-        ingredients: ['نودلز سوبا', 'قرع ياباني', 'نعناع', 'صلصة صويا', 'ثوم أخضر'],
-        estimatedCost: 2.10,
-        savings: 8.90,
+        ingredients: ['صدر دجاج', 'فطر مشكّل', 'بف كريما', 'ثوم', 'فلفل أسود'],
+        estimatedCost: 4.20,
+        savings: 11.80,
       },
       {
-        name: 'تشاو ميين مع الكوسا والكرفس',
-        time: '١٢ دقيقة',
-        ingredients: ['نودلز يابانية', 'كوسا', 'كرفس', 'فلفل ملوّن', 'ثوم'],
-        estimatedCost: 2.60,
-        savings: 9.40,
+        name: 'صحن لبنة بالخيار والليمون',
+        time: '٨ دقائق',
+        ingredients: ['لبنة', 'خيار', 'ليمون', 'زيت زيتون', 'نعناع'],
+        estimatedCost: 2.40,
+        savings: 7.60,
+      },
+      {
+        name: 'باستا بالسردين واللبن',
+        time: '١٥ دقيقة',
+        ingredients: ['سردين', 'لبن رابعة', 'ليمون', 'خيار', 'ثوم'],
+        estimatedCost: 3.10,
+        savings: 8.90,
       },
     ],
   },
@@ -186,14 +187,26 @@ export function getMockReceipt(lang = 'en') {
   return MOCKS[lang] || MOCKS.en;
 }
 
+// Tiny helper so the demo mock feels real — vision LLMs typically take
+// 2-4s end-to-end (upload + inference + parse). We deliberately wait
+// in the mock path so the on-screen "Reading receipt…" / "جاري قراءة
+// الإيصال" state is visible long enough to read.
+const MOCK_DELAY_MS = 3200;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function readReceiptImageSafe(file, lang = 'en', { forceMock = false } = {}) {
   if (forceMock || !VISION_API_KEY) {
+    await sleep(MOCK_DELAY_MS);
     return { receipt: getMockReceipt(lang), source: 'mock' };
   }
   try {
     const receipt = await readReceiptImage(file, lang);
     return { receipt, source: 'live' };
   } catch {
+    await sleep(MOCK_DELAY_MS);
     return { receipt: getMockReceipt(lang), source: 'mock' };
   }
 }

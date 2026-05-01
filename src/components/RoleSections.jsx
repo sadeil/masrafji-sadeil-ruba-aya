@@ -1,3 +1,4 @@
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import {
   TrendingUp,
   TrendingDown,
@@ -21,12 +22,27 @@ import {
   Shield,
   Sparkles,
   ScanLine,
+  PiggyBank,
+  Coins,
+  Plus,
+  Gamepad2,
+  Bike,
+  Cpu,
+  Music,
+  Landmark,
+  ArrowUpRight,
+  ArrowDownRight,
+  Mic,
 } from 'lucide-react';
 import { Card, CardHeader, Chip, Progress } from './UI.jsx';
 import { CategoryDonut, ForecastChart } from './Charts.jsx';
 import { DASHBOARD_DATA, ROLE_EXTRAS } from '../data.js';
 import { fmtMoney, fmtPct, pick } from '../format.js';
 import { useLang, useT } from '../i18n.jsx';
+
+const WATCHLIST_ICONS = { gold: Coins, 'tech-etf': Cpu, reit: Landmark };
+const SIDE_HUSTLE_ICONS = { cpu: Cpu, smartphone: Smartphone, music: Music, monitor: Monitor };
+const KID_GOAL_ICONS = { gamepad: Gamepad2, bike: Bike, circle: Star };
 
 const UNI_SOURCE_ICONS = {
   srcAllowance: Gift,
@@ -242,13 +258,85 @@ function BusinessSections({ currency }) {
 /* School student                                                             */
 /* -------------------------------------------------------------------------- */
 
-function SchoolSections() {
+function SchoolSections({ currency }) {
   const t = useT();
   const { lang } = useLang();
-  const { badges, parentMode } = ROLE_EXTRAS['school-student'];
+  const { badges, parentMode, piggyBank, kidGoals } = ROLE_EXTRAS['school-student'];
   const parentName = pick(parentMode, 'parentName', lang);
   return (
     <>
+      <PiggyBankCard
+        target={piggyBank.target}
+        saved={piggyBank.saved}
+        goalLabel={t(`sections.school.kidGoals.${piggyBank.goalKey}`)}
+        streakDays={piggyBank.streakDays}
+        lastDeposit={piggyBank.lastDeposit}
+        gradient={piggyBank.gradient}
+        currency={currency}
+      />
+
+      <Card className="p-4">
+        <CardHeader
+          title={t('sections.school.kidGoals.title')}
+          subtitle={t('sections.school.kidGoals.subtitle')}
+        />
+        <div className="grid grid-cols-1 gap-3 mt-3">
+          {kidGoals.map((g) => {
+            const Icon = KID_GOAL_ICONS[g.icon] || Star;
+            const pct = Math.min(100, (g.saved / g.target) * 100);
+            const done = pct >= 100;
+            return (
+              <div
+                key={g.id}
+                className="p-3 rounded-2xl border flex items-center gap-3"
+                style={{
+                  borderColor: done ? `${g.color}55` : 'var(--border)',
+                  background: done ? `${g.color}14` : 'var(--surface-2)',
+                }}
+              >
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-white flex-shrink-0 shadow-md"
+                  style={{
+                    background: `linear-gradient(135deg, ${g.color}, ${g.color}cc)`,
+                  }}
+                >
+                  <Icon size={22} strokeWidth={2.2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="font-semibold text-1 text-sm truncate">
+                      {t(`sections.school.kidGoals.${g.titleKey}`)}
+                    </div>
+                    {done ? (
+                      <Chip tone="success">{t('common.achieved')}</Chip>
+                    ) : (
+                      <span className="text-[11px] font-bold tabular-nums text-2 ltr-numbers">
+                        {Math.round(pct)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-3 mb-1.5 ltr-numbers">
+                    {fmtMoney(g.saved, currency)} / {fmtMoney(g.target, currency)}
+                  </div>
+                  <div
+                    className="h-2 rounded-full overflow-hidden"
+                    style={{ background: 'var(--surface-3)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        background: `linear-gradient(90deg, ${g.color}, ${g.color}cc)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <Card className="p-4">
         <CardHeader
           title={t('sections.school.achievements')}
@@ -263,6 +351,8 @@ function SchoolSections() {
                 ? Star
                 : b.icon === 'shield'
                 ? ShieldCheck
+                : b.icon === 'gamepad'
+                ? Gamepad2
                 : Smartphone;
             return (
               <div
@@ -319,13 +409,109 @@ function SchoolSections() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* PiggyBankCard — Kids piggy bank widget (Hasala حصالة)                      */
+/* -------------------------------------------------------------------------- */
+
+export function PiggyBankCard({
+  target = 500,
+  saved = 0,
+  goalLabel = 'New PlayStation 5',
+  streakDays = 0,
+  lastDeposit = 0,
+  gradient = ['#fb7185', '#f97316', '#facc15'],
+  currency = 'USD',
+}) {
+  const t = useT();
+  const pct = Math.max(0, Math.min(100, (saved / target) * 100));
+  const remaining = Math.max(0, target - saved);
+  const full = pct >= 100;
+  const [grad1, grad2, grad3] = gradient;
+
+  return (
+    <div className="piggy-card">
+      <div className="piggy-card-head">
+        <div className="min-w-0">
+          <div className="piggy-card-eyebrow">{t('sections.school.piggy.title')}</div>
+          <div className="piggy-card-title">{t('sections.school.piggy.subtitle')}</div>
+        </div>
+        {streakDays > 0 && (
+          <span className="piggy-streak">
+            <Flame size={12} strokeWidth={2.6} />
+            {t('sections.school.piggy.streakDays', { n: streakDays })}
+          </span>
+        )}
+      </div>
+
+      <div className="piggy-stage">
+        <div
+          className="piggy-fill"
+          style={{
+            height: `${pct}%`,
+            background: `linear-gradient(180deg, ${grad3} 0%, ${grad2} 60%, ${grad1} 100%)`,
+          }}
+        >
+          <div className="piggy-fill-shine" />
+        </div>
+        <div className="piggy-coins" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span
+              key={i}
+              className="piggy-coin"
+              style={{
+                left: `${15 + i * 16}%`,
+                animationDelay: `${i * 0.4}s`,
+              }}
+            >
+              <Coins size={14} strokeWidth={2.4} />
+            </span>
+          ))}
+        </div>
+        <div className="piggy-icon-wrap">
+          <PiggyBank size={88} strokeWidth={1.8} />
+        </div>
+        <div className="piggy-pct">
+          <span className="piggy-pct-num tabular-nums ltr-numbers">{Math.round(pct)}%</span>
+          <span className="piggy-pct-lbl">{t('sections.school.piggy.gradLabel')}</span>
+        </div>
+      </div>
+
+      <div className="piggy-card-foot">
+        <div className="min-w-0">
+          <div className="piggy-foot-label">{t('sections.school.piggy.saving')}</div>
+          <div className="piggy-foot-goal truncate">{goalLabel}</div>
+        </div>
+        <div className="text-end ltr-numbers min-w-0">
+          <div className="piggy-foot-amount tabular-nums">
+            {fmtMoney(saved, currency)}
+          </div>
+          <div className="piggy-foot-meta">
+            {full
+              ? t('sections.school.piggy.fullDone')
+              : t('sections.school.piggy.fullIn', { amount: fmtMoney(remaining, currency).replace(/^[^\d-]+/, '') })}
+          </div>
+        </div>
+      </div>
+
+      {lastDeposit > 0 && (
+        <div className="piggy-last-deposit">
+          <Plus size={11} strokeWidth={2.6} />
+          {t('sections.school.piggy.lastDeposit', {
+            amount: fmtMoney(lastDeposit, currency).replace(/^[^\d-]+/, ''),
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* University student                                                         */
 /* -------------------------------------------------------------------------- */
 
 function UniSections({ currency, onOpenSmartReceipt }) {
   const t = useT();
   const { lang } = useLang();
-  const { sideIncome } = ROLE_EXTRAS['university-student'];
+  const { sideIncome, sideHustle } = ROLE_EXTRAS['university-student'];
   const data = DASHBOARD_DATA['university-student'];
   const total = sideIncome.reduce((s, r) => s + r.amount, 0);
 
@@ -351,7 +537,7 @@ function UniSections({ currency, onOpenSmartReceipt }) {
           subtitle={t('sections.uni.sourcesSub')}
           action={<Chip tone="brand">{fmtMoney(total, currency)}</Chip>}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 items-center">
+        <div className="mt-3 space-y-4">
           <div className="min-w-0">
             <CategoryDonut
               data={donutData}
@@ -432,6 +618,9 @@ function UniSections({ currency, onOpenSmartReceipt }) {
         </div>
       </Card>
 
+      {/* ── Side-Hustle tracker ─────────────────────────────────────────── */}
+      <SideHustleTracker items={sideHustle} currency={currency} lang={lang} />
+
       {/* ── Smart Receipt CTA ────────────────────────────────────────────── */}
       <button
         type="button"
@@ -453,6 +642,138 @@ function UniSections({ currency, onOpenSmartReceipt }) {
         <Sparkles size={16} strokeWidth={2.2} className="opacity-80 flex-shrink-0" />
       </button>
     </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* SideHustleTracker — Stuff a uni student might flip                          */
+/* -------------------------------------------------------------------------- */
+
+export function SideHustleTracker({ items = [], currency = 'USD', lang = 'en' }) {
+  const t = useT();
+  const totalProfit = items.reduce((s, i) => s + (i.market - i.bought), 0);
+  const positiveTotal = totalProfit >= 0;
+
+  return (
+    <Card className="p-4">
+      <CardHeader
+        title={t('sections.uni.sideHustle')}
+        subtitle={t('sections.uni.sideHustleSub')}
+        action={
+          <Chip tone={positiveTotal ? 'success' : 'danger'}>
+            {positiveTotal ? '+' : ''}
+            {fmtMoney(totalProfit, currency)}
+          </Chip>
+        }
+      />
+
+      <div className="mt-3 space-y-2.5">
+        {items.map((item) => {
+          const Icon = SIDE_HUSTLE_ICONS[item.icon] || Cpu;
+          const profit = item.market - item.bought;
+          const positive = profit >= 0;
+          return (
+            <div
+              key={item.id}
+              className="p-3 rounded-2xl border"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+            >
+              {/* Row 1: icon + item name (full width) */}
+              <div className="flex items-center gap-2.5 mb-3 min-w-0">
+                <span
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm"
+                  style={{ background: `linear-gradient(135deg, ${item.color}, ${item.color}cc)` }}
+                >
+                  <Icon size={17} strokeWidth={2.2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-1 truncate">
+                    {pick(item, 'name', lang)}
+                  </div>
+                  <div className="text-[10.5px] text-3 uppercase tracking-wide font-semibold mt-0.5">
+                    {positive
+                      ? `+${fmtPct((profit / item.bought) * 100, { sign: false })}`
+                      : fmtPct((profit / item.bought) * 100, { sign: false })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: 3 mini stat tiles */}
+              <div className="grid grid-cols-3 gap-2">
+                <SideHustleStat
+                  label={t('sections.uni.sideHustleBought')}
+                  value={fmtMoney(item.bought, currency)}
+                />
+                <SideHustleStat
+                  label={t('sections.uni.sideHustleMarket')}
+                  value={fmtMoney(item.market, currency)}
+                  emphasis
+                />
+                <div className="rounded-xl px-2.5 py-2 text-center" style={{
+                  background: positive
+                    ? 'rgba(16, 185, 129, 0.12)'
+                    : 'rgba(244, 63, 94, 0.12)',
+                }}>
+                  <div className={`text-[10px] font-bold uppercase tracking-wide ${
+                    positive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
+                  }`}>
+                    {t('sections.uni.sideHustleProfit')}
+                  </div>
+                  <div className={`text-[12.5px] font-bold tabular-nums ltr-numbers mt-0.5 inline-flex items-center gap-0.5 justify-center ${
+                    positive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
+                  }`}>
+                    {positive ? (
+                      <ArrowUpRight size={11} strokeWidth={2.6} />
+                    ) : (
+                      <ArrowDownRight size={11} strokeWidth={2.6} />
+                    )}
+                    {positive ? '+' : ''}
+                    {fmtMoney(profit, currency)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="mt-3 pt-3 flex items-center justify-between text-xs"
+        style={{ borderTop: '1px dashed var(--border)' }}
+      >
+        <span className="text-3 font-semibold uppercase tracking-wide">
+          {t('sections.uni.sideHustleTotal')}
+        </span>
+        <span
+          className={`font-bold tabular-nums ltr-numbers ${
+            positiveTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+          }`}
+        >
+          {positiveTotal ? '+' : ''}
+          {fmtMoney(totalProfit, currency)}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+function SideHustleStat({ label, value, emphasis = false }) {
+  return (
+    <div
+      className="rounded-xl px-2.5 py-2 text-center"
+      style={{ background: 'var(--surface)' }}
+    >
+      <div className="text-[10px] font-bold uppercase tracking-wide text-3">
+        {label}
+      </div>
+      <div
+        className={`text-[12.5px] tabular-nums ltr-numbers mt-0.5 ${
+          emphasis ? 'font-bold text-1' : 'font-semibold text-2'
+        }`}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 
@@ -628,6 +949,104 @@ function ScoreRow({ label, value, tone }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* AssetWatchlist — Investor watchlist with sparklines                        */
+/* -------------------------------------------------------------------------- */
+
+export function AssetWatchlist({ assets = [], currency = 'USD' }) {
+  const t = useT();
+  return (
+    <Card className="p-4">
+      <CardHeader
+        title={t('sections.employee.watchlist')}
+        subtitle={t('sections.employee.watchlistSub')}
+        action={
+          <Chip tone="brand">
+            <TrendingUp size={11} strokeWidth={2.5} />
+            {assets.length}
+          </Chip>
+        }
+      />
+      <div className="mt-3 space-y-2.5">
+        {assets.map((a) => {
+          const Icon = WATCHLIST_ICONS[a.id] || Wallet;
+          const positive = a.change >= 0;
+          const sparkColor = positive ? '#10b981' : '#ef4444';
+          const sparkData = a.spark.map((v, i) => ({ i, v }));
+          return (
+            <div
+              key={a.id}
+              className="p-3 rounded-2xl border"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+            >
+              {/* Row 1: identity + price */}
+              <div className="flex items-center gap-3 mb-2.5">
+                <span
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm"
+                  style={{ background: `linear-gradient(135deg, ${a.color}, ${a.color}cc)` }}
+                >
+                  <Icon size={18} strokeWidth={2.2} />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-1 truncate">
+                    {t(`sections.employee.${a.nameKey}`)}
+                  </div>
+                  <div className="text-[10.5px] text-3 tabular-nums uppercase tracking-wider font-semibold mt-0.5">
+                    {a.symbol}
+                  </div>
+                </div>
+
+                <div className="text-end ltr-numbers flex-shrink-0">
+                  <div className="text-base font-bold tabular-nums text-1 leading-tight">
+                    {fmtMoney(a.price, currency)}
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold px-1.5 py-0.5 rounded-full mt-1 tabular-nums ${
+                      positive
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                    }`}
+                  >
+                    {positive ? (
+                      <ArrowUpRight size={10} strokeWidth={2.6} />
+                    ) : (
+                      <ArrowDownRight size={10} strokeWidth={2.6} />
+                    )}
+                    {fmtPct(a.change, { sign: true })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 2: full-width sparkline */}
+              <div className="h-10 -mx-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={sparkData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                    <defs>
+                      <linearGradient id={`spark-${a.id}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={sparkColor} stopOpacity="0.35" />
+                        <stop offset="100%" stopColor={sparkColor} stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <Line
+                      type="monotone"
+                      dataKey="v"
+                      stroke={sparkColor}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Freelancer                                                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -722,6 +1141,217 @@ function GeneralSections() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* FXRateCard — USD exchange rates with a hold/exchange advisory               */
+/* -------------------------------------------------------------------------- */
+
+const FX_PAIRS = [
+  { code: 'ILS', flag: '🇮🇱', symbol: '₪', rate: 3.74, delta: 0.6 },
+  { code: 'JOD', flag: '🇯🇴', symbol: 'JD', rate: 0.708, delta: -0.1 },
+  { code: 'EUR', flag: '🇪🇺', symbol: '€', rate: 0.928, delta: 0.4 },
+];
+
+export function FXRateCard() {
+  const t = useT();
+  return (
+    <Card className="p-4">
+      <CardHeader
+        title={t('sections.employee.fxTitle')}
+        subtitle={t('sections.employee.fxSub')}
+        action={
+          <Chip tone="brand">
+            <span className="text-[11px] font-bold tabular-nums">USD</span>
+          </Chip>
+        }
+      />
+      <div className="mt-3 space-y-2">
+        {FX_PAIRS.map((p) => {
+          const positive = p.delta >= 0;
+          return (
+            <div
+              key={p.code}
+              className="flex items-center gap-3 p-3 rounded-2xl border"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+            >
+              <span className="text-2xl flex-shrink-0" aria-hidden="true">{p.flag}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-1">
+                  {`USD / ${p.code}`}
+                </div>
+                <div className="text-[10.5px] text-3 uppercase tracking-wider font-semibold mt-0.5">
+                  {`1 USD = ${p.symbol}${p.rate}`}
+                </div>
+              </div>
+              <div className="text-end ltr-numbers flex-shrink-0">
+                <div className="text-base font-bold tabular-nums text-1 leading-tight">
+                  {`${p.symbol}${p.rate}`}
+                </div>
+                <span
+                  className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold px-1.5 py-0.5 rounded-full mt-1 tabular-nums ${
+                    positive
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                  }`}
+                >
+                  {positive ? (
+                    <ArrowUpRight size={10} strokeWidth={2.6} />
+                  ) : (
+                    <ArrowDownRight size={10} strokeWidth={2.6} />
+                  )}
+                  {fmtPct(p.delta, { sign: true })}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="mt-3 flex items-start gap-2.5 p-3 rounded-2xl"
+        style={{
+          background: 'var(--warning-soft)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+        }}
+      >
+        <span
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'var(--warning)', color: '#fff' }}
+        >
+          <AlertTriangle size={14} strokeWidth={2.4} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-[12.5px] font-bold text-1 leading-tight">
+            {t('sections.employee.fxAdviceTitle')}
+          </div>
+          <div className="text-[11px] text-2 mt-0.5 leading-relaxed">
+            {t('sections.employee.fxAdviceBody')}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* AILoggerCard — One-stop AI capture surface tuned per persona               */
+/* -------------------------------------------------------------------------- */
+
+const AI_LOGGER_CONFIG = {
+  'school-student': {
+    bodyKey: 'kid',
+    gradient: 'linear-gradient(135deg, #fb7185 0%, #f97316 50%, #facc15 100%)',
+    shadow: '0 14px 32px -14px rgba(251, 113, 133, 0.55)',
+    chips: [
+      { id: 'voice', icon: Mic, color: '#fff', textKey: 'voice' },
+      { id: 'scan', icon: ScanLine, color: '#fff', textKey: 'snap' },
+    ],
+  },
+  'university-student': {
+    bodyKey: 'uni',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #0d9488 60%, #0ea5e9 100%)',
+    shadow: '0 14px 32px -14px rgba(16, 185, 129, 0.55)',
+    chips: [
+      { id: 'scan', icon: ScanLine, textKey: 'receipt' },
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+    ],
+  },
+  'family-parent': {
+    bodyKey: 'family',
+    gradient: 'linear-gradient(135deg, #3961fb 0%, #6366f1 50%, #7c3aed 100%)',
+    shadow: '0 14px 32px -14px rgba(99, 102, 241, 0.55)',
+    chips: [
+      { id: 'scan', icon: ScanLine, textKey: 'receipt' },
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+    ],
+  },
+  employee: {
+    bodyKey: 'employee',
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)',
+    shadow: '0 14px 32px -14px rgba(124, 58, 237, 0.55)',
+    chips: [
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+      { id: 'scan', icon: ScanLine, textKey: 'receipt' },
+    ],
+  },
+  business: {
+    bodyKey: 'business',
+    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #2447ec 60%, #1d36c9 100%)',
+    shadow: '0 14px 32px -14px rgba(36, 71, 236, 0.55)',
+    chips: [
+      { id: 'scan', icon: ScanLine, textKey: 'invoice' },
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+    ],
+  },
+  freelancer: {
+    bodyKey: 'freelancer',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #dc2626 100%)',
+    shadow: '0 14px 32px -14px rgba(245, 158, 11, 0.55)',
+    chips: [
+      { id: 'scan', icon: ScanLine, textKey: 'receipt' },
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+    ],
+  },
+  general: {
+    bodyKey: 'general',
+    gradient: 'linear-gradient(135deg, #5a86ff 0%, #3961fb 60%, #6d28d9 100%)',
+    shadow: '0 14px 32px -14px rgba(57, 97, 251, 0.55)',
+    chips: [
+      { id: 'voice', icon: Mic, textKey: 'voice' },
+      { id: 'scan', icon: ScanLine, textKey: 'receipt' },
+    ],
+  },
+};
+
+export function AILoggerCard({ roleId = 'general', onOpenVoice, onOpenScan, onOpenPaste }) {
+  const t = useT();
+  const cfg = AI_LOGGER_CONFIG[roleId] || AI_LOGGER_CONFIG.general;
+
+  function dispatch(chipId) {
+    if (chipId === 'voice') return onOpenVoice?.();
+    if (chipId === 'scan') return onOpenScan?.();
+    if (chipId === 'sms' || chipId === 'email') return onOpenPaste?.(chipId);
+    return null;
+  }
+
+  return (
+    <div
+      className="ai-logger-card"
+      style={{ background: cfg.gradient, boxShadow: cfg.shadow }}
+    >
+      <div className="ai-logger-head">
+        <div className="ai-logger-badge">
+          <Sparkles size={12} strokeWidth={2.6} />
+          {t('aiLogger.badge')}
+        </div>
+        <div className="ai-logger-title">{t(`aiLogger.${cfg.bodyKey}.title`)}</div>
+        <div className="ai-logger-sub">{t(`aiLogger.${cfg.bodyKey}.sub`)}</div>
+      </div>
+
+      <div className="ai-logger-chips" data-count={cfg.chips.length}>
+        {cfg.chips.map((chip) => {
+          const Icon = chip.icon;
+          return (
+            <button
+              key={chip.id}
+              type="button"
+              className="ai-logger-chip"
+              onClick={() => dispatch(chip.id)}
+              aria-label={t(`aiLogger.chip.${chip.textKey}`)}
+            >
+              <span className="ai-logger-chip-icon">
+                <Icon size={18} strokeWidth={2.3} />
+              </span>
+              <span className="ai-logger-chip-label">
+                {t(`aiLogger.chip.${chip.textKey}`)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Router                                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -732,7 +1362,7 @@ export function RoleSpecificSections({ roleId, currency, onOpenSmartReceipt }) {
     case 'business':
       return <BusinessSections currency={currency} />;
     case 'school-student':
-      return <SchoolSections />;
+      return <SchoolSections currency={currency} />;
     case 'university-student':
       return <UniSections currency={currency} onOpenSmartReceipt={onOpenSmartReceipt} />;
     case 'employee':
